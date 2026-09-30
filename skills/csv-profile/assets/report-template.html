@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>CSV quality report</title>
+  <style>/*__CSV_PROFILE_CSS__*/</style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to report</a>
+  <header class="topbar">
+    <a class="brand" href="#overview" aria-label="CSV profile overview"><span class="brand-mark">T▵</span><span>TRIUNALABS <i>/</i> CSV PROFILE</span></a>
+    <div class="top-actions">
+      <span class="local-pill">LOCAL REPORT</span>
+      <button id="print-report" class="icon-button" type="button" title="Print or save as PDF" aria-label="Print or save as PDF">⌁</button>
+      <button id="theme-toggle" class="icon-button" type="button" title="Toggle theme" aria-label="Toggle light and dark theme">◐</button>
+    </div>
+  </header>
+  <div class="shell">
+    <aside class="rail" aria-label="Report sections">
+      <p class="rail-label">OBSERVE</p>
+      <a href="#overview" data-section="overview"><span>01</span> Overview</a>
+      <a href="#findings" data-section="findings"><span>02</span> Findings</a>
+      <a href="#columns" data-section="columns"><span>03</span> Columns</a>
+      <a href="#rows" data-section="rows"><span>04</span> Row samples</a>
+      <a href="#method" data-section="method"><span>05</span> Method</a>
+      <div class="rail-foot"><span class="pulse"></span><span>Generated offline<br>No data transmitted</span></div>
+    </aside>
+    <main id="main">
+      <section id="overview" class="hero report-section">
+        <div>
+          <p class="eyebrow">DATA QUALITY OBSERVATION</p>
+          <h1 id="report-title">CSV quality report</h1>
+          <p id="report-meta" class="subtle"></p>
+        </div>
+        <div class="score-card" aria-label="Quality score">
+          <div class="score-ring"><strong id="quality-score">—</strong><span>/100</span></div>
+          <div><p>QUALITY SIGNAL</p><strong id="quality-status">Analyzing</strong><span id="quality-note"></span></div>
+        </div>
+      </section>
+      <section aria-label="Dataset summary" class="metric-grid" id="metrics"></section>
+      <section class="split report-section" id="findings">
+        <div class="panel findings-panel">
+          <div class="panel-head"><div><p class="eyebrow">PRIORITY QUEUE</p><h2>What deserves attention</h2></div><div class="segmented" id="severity-filter" aria-label="Filter findings"><button data-severity="all" aria-pressed="true">All</button><button data-severity="high">High</button><button data-severity="medium">Medium</button><button data-severity="low">Low</button></div></div>
+          <div id="issue-list" class="issue-list"></div>
+        </div>
+        <div class="panel deductions-panel">
+          <div class="panel-head"><div><p class="eyebrow">SCORE COMPOSITION</p><h2>Why this score</h2></div></div>
+          <div id="deductions"></div>
+          <p class="fineprint">The score is a triage aid. It weights structural consistency, completeness, types, duplicates, headers, and whitespace. It does not judge business meaning.</p>
+        </div>
+      </section>
+      <section class="panel report-section" id="columns">
+        <div class="panel-head columns-head"><div><p class="eyebrow">SCHEMA LENS</p><h2>Column diagnostics</h2></div><label class="search"><span>⌕</span><input id="column-search" type="search" placeholder="Find a column or type…" aria-label="Search columns"></label></div>
+        <div class="table-wrap"><table><thead><tr><th>Column</th><th>Signal</th><th>Type</th><th>Complete</th><th>Distinct</th><th>Issues</th><th></th></tr></thead><tbody id="column-table"></tbody></table></div>
+        <p id="column-empty" class="empty" hidden>No columns match this search.</p>
+      </section>
+      <section class="panel report-section" id="rows">
+        <div class="panel-head"><div><p class="eyebrow">TRACE VIEW</p><h2>Sampled issue rows</h2><p id="privacy-copy" class="subtle"></p></div></div>
+        <div id="row-samples"></div>
+      </section>
+      <section class="panel report-section" id="method">
+        <div class="panel-head"><div><p class="eyebrow">READ THE INSTRUMENT</p><h2>Method and limits</h2></div></div>
+        <div class="method-grid"><div><h3>Detection rules</h3><dl id="method-rules"></dl></div><div><h3>Limits to carry forward</h3><ul id="method-limits"></ul></div><div><h3>Null vocabulary</h3><div id="null-tokens" class="token-list"></div></div></div>
+      </section>
+      <footer><span>TriunaLabs CSV Profile</span><span id="generated-at"></span></footer>
+    </main>
+  </div>
+  <dialog id="column-dialog" aria-labelledby="dialog-title">
+    <div class="dialog-head"><div><p class="eyebrow">COLUMN DETAIL</p><h2 id="dialog-title"></h2></div><button id="dialog-close" class="icon-button" aria-label="Close column detail">×</button></div>
+    <div id="dialog-body"></div>
+  </dialog>
+  <script id="profile-data" type="application/json">/*__CSV_PROFILE_DATA__*/</script>
+  <script>/*__CSV_PROFILE_JS__*/</script>
+</body>
+</html>

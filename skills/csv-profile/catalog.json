@@ -4,14 +4,16 @@
   "tags": [
     "csv",
     "quality",
+    "profiling",
+    "html-report",
     "python"
   ],
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "author": "TriunaLabs",
   "origin": "Original starter authored for this public library; not copied from installed skills.",
   "requirements": [
-    "Python 3.10+ for the included standard-library script; read access to the CSV."
+    "Python 3.10+ for the standard-library analyzer; read access to the CSV. HTML reports run in a modern browser with JavaScript enabled."
   ],
   "compatibility": {
     "codex": "format-compatible",
@@ -19,6 +21,7 @@
     "other-agents": "untested"
   },
   "examples": [
-    "Check a CSV export for duplicate headers, uneven rows, and empty fields."
+    "Generate an interactive HTML quality report for this CSV and show me the nulls, type conflicts, duplicates, category variants, and outliers.",
+    "Create a Markdown profile of this CSV without including raw row values."
   ]
 }

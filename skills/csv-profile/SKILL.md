@@ -1,19 +1,24 @@
 ---
 name: csv-profile
-description: Inspect a local CSV for structural and missing-value issues and produce an aggregate quality report. Use before importing or analyzing a CSV; does not infer sensitive attributes or repair records automatically.
+description: Analyze a local CSV for nulls, inferred-type conflicts, malformed rows, duplicates, whitespace, category variants, and numeric outliers, then generate an interactive HTML, Markdown, or JSON quality report. Use before importing, modeling, or cleaning a CSV; does not repair records automatically.
 license: MIT
 ---
 
 # Profile a CSV
 
-Produce a structural report without exposing raw records.
+Create a read-only data-quality observation. Prefer the interactive HTML report when the user wants to inspect patterns and drill into columns. Use Markdown for a compact review artifact, and JSON for downstream automation.
 
-Run the bundled helper with an explicit file path:
+Run the analyzer with an explicit input and output:
 
 ```sh
-python scripts/profile_csv.py /path/to/input.csv
+python scripts/analyze_csv.py /path/to/input.csv --format html --output /path/to/input.profile.html
+python scripts/analyze_csv.py /path/to/input.csv --format markdown --output /path/to/input.profile.md
 ```
 
-Resolve the script relative to this skill folder, not the user's project. It emits JSON to stdout, reads UTF-8 with optional BOM, uses comma delimiters by default, and treats whitespace-only fields as empty. Use `--delimiter ';'` for semicolon-separated files. See [interpretation notes](references/interpretation.md) before drawing conclusions from malformed rows.
+Resolve the script and its assets relative to this skill folder. Read [report formats](references/report-formats.md) for output choice and CLI options. Read [interpretation notes](references/interpretation.md) before turning detected signals into recommendations.
 
-Report record count, duplicate header names, row-width issues, and missing-field counts. Avoid pasting raw records into the answer. Ask for an encoding or delimiter when parsing assumptions do not match the file. Do not silently rewrite or discard records. Suggest concrete import checks based on the report; absence of structural issues does not establish business validity.
+The HTML should lead with the overall quality signal, then ranked findings, searchable column diagnostics, sampled issue rows, and transparent method limits. It is standalone and works offline. Generate it in a user-accessible project or artifact directory and open or link it after generation when the environment supports that.
+
+Exclude raw values by default. Use `--include-values` only when row-level values materially help the requested analysis and the local report can be handled like the source CSV. Never claim that an outlier, inferred-type conflict, or high score proves a record is wrong or a dataset is fit for use.
+
+Report the strongest findings, the affected columns, relevant counts or rates, and the generated artifact path. Suggest specific validation or cleaning steps, but do not alter the CSV unless the user separately asks for repair.

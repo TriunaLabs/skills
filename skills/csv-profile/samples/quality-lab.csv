@@ -1,0 +1,11 @@
+record_id,amount,status,observed_at,region,notes
+001,19.95,Open,2026-01-03,West,ok
+002,"$1,200",open,2026-01-04,west,
+003,not_available,CLOSED,01/05/2026,East,"  padded note  "
+004,25.00,Closed,2026-01-06,east,ok
+005,99999,N/A,not-a-date,North,outlier candidate
+006,24.90,closed,2026-01-08,NORTH,ok
+006,24.90,closed,2026-01-08,NORTH,ok
+007,,Pending,2026-01-09,South,
+008,23.75,pending,2026-01-10,south,ok
+009,24.10,Pending,2026-01-11, South ,ok

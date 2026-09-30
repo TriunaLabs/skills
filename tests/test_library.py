@@ -10,9 +10,14 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from validate import validate
 
-spec = importlib.util.spec_from_file_location('profile_csv', ROOT / 'skills/csv-profile/scripts/profile_csv.py')
+CSV_SCRIPT_DIR = ROOT / 'skills/csv-profile/scripts'
+sys.path.insert(0, str(CSV_SCRIPT_DIR))
+spec = importlib.util.spec_from_file_location('profile_csv', CSV_SCRIPT_DIR / 'profile_csv.py')
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
+analyze_spec = importlib.util.spec_from_file_location('analyze_csv', CSV_SCRIPT_DIR / 'analyze_csv.py')
+analyzer = importlib.util.module_from_spec(analyze_spec)
+analyze_spec.loader.exec_module(analyzer)
 
 class LibraryTests(unittest.TestCase):
     def test_catalog(self):
@@ -63,6 +68,52 @@ class LibraryTests(unittest.TestCase):
             path.write_text('a,b\n"unclosed,2')
             with self.assertRaises(csv.Error):
                 module.profile(path)
+
+    def test_rich_csv_analysis_and_reports(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'observations.csv'
+            path.write_text(
+                'id,amount,status,observed_at,note\n'
+                '1,10,Open,2026-01-01,ok\n'
+                '2,"$1,200",open,2026-01-02,\n'
+                '3,oops, OPEN ,not-a-date,  padded  \n'
+                '3,oops, OPEN ,not-a-date,  padded  \n'
+                '5,99999,N/A,2026-01-05,ok\n',
+                encoding='utf-8',
+            )
+            report = analyzer.analyze(path, include_values=True)
+            self.assertEqual(report['summary']['rows'], 5)
+            self.assertEqual(report['summary']['duplicate_rows'], 1)
+            self.assertGreater(report['summary']['missing'], 0)
+            self.assertGreater(report['summary']['mixed_type_values'], 0)
+            self.assertTrue(any(item['kind'] == 'category variants' for item in report['issues']))
+            self.assertTrue(any(sample.get('values') for sample in report['row_samples']))
+            html = analyzer.render_html(report)
+            self.assertIn('<!doctype html>', html)
+            self.assertIn('CSV quality report', html)
+            self.assertNotIn('/*__CSV_PROFILE_', html)
+            self.assertNotIn('https://', html)
+            markdown = analyzer.render_markdown(report)
+            self.assertIn('## Priority findings', markdown)
+            self.assertIn('| Column | Inferred type |', markdown)
+
+    def test_rich_report_excludes_values_by_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'private.csv'
+            path.write_text('name,value\nPRIVATE_PERSON,\n', encoding='utf-8')
+            report = analyzer.analyze(path)
+            self.assertFalse(report['privacy']['values_included'])
+            self.assertNotIn('PRIVATE_PERSON', json.dumps(report['row_samples']))
+
+    def test_width_issue_count_is_not_limited_by_samples(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'widths.csv'
+            path.write_text('a,b\n1\n2\n3\n4,5\n', encoding='utf-8')
+            report = analyzer.analyze(path, row_sample_limit=1)
+            self.assertEqual(report['summary']['rows'], 4)
+            self.assertEqual(report['summary']['rectangular_rows'], 1)
+            self.assertEqual(report['summary']['width_issues'], 3)
+            self.assertEqual(len(report['width_issue_samples']), 1)
 
 if __name__ == '__main__':
     unittest.main()
