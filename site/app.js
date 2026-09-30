@@ -52,7 +52,7 @@ function install(agent) {
 }
 document.querySelectorAll('[data-install]').forEach(b=>b.addEventListener('click',()=>install(b.dataset.install)));
 install('codex');
-fetch('catalog.json').then(r=>{if(!r.ok)throw new Error('catalog');return r.json();}).then(data=>{
+fetch('catalog.json', {cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('catalog');return r.json();}).then(data=>{
   skills=data;
   [...new Set(skills.map(s=>s.category))].sort().forEach(c=>{const o=el('option',c);o.value=c;$('category').append(o);});
   const p=new URLSearchParams(location.search);$('search').value=p.get('q')||'';
