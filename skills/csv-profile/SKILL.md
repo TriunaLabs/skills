@@ -1,6 +1,6 @@
 ---
 name: csv-profile
-description: Analyze a local CSV for nulls, inferred-type conflicts, malformed rows, duplicates, whitespace, category variants, and numeric outliers, then generate an interactive HTML, Markdown, or JSON quality report. Use before importing, modeling, or cleaning a CSV; does not repair records automatically.
+description: Analyze a local CSV for structural and value-quality risks, then generate interactive HTML, Markdown, or JSON reports with optional aggregate-only Laya semantic review and confidence gates. Use before importing, modeling, or cleaning a CSV; does not repair records automatically.
 license: MIT
 ---
 

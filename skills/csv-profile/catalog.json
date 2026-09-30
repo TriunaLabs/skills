@@ -6,9 +6,11 @@
     "quality",
     "profiling",
     "html-report",
-    "python"
+    "python",
+    "laya",
+    "semantic-review"
   ],
-  "version": "0.3.0",
+  "version": "0.3.1",
   "license": "MIT",
   "author": "TriunaLabs",
   "origin": "Original starter authored for this public library; not copied from installed skills.",
@@ -22,6 +24,7 @@
   },
   "examples": [
     "Generate an interactive HTML quality report for this CSV and show me the nulls, type conflicts, duplicates, category variants, and outliers.",
-    "Create a Markdown profile of this CSV without including raw row values."
+    "Create a Markdown profile of this CSV without including raw row values.",
+    "Profile this CSV, then use Laya in shadow mode to suggest semantic column roles and review priorities from aggregate statistics only."
   ]
 }
