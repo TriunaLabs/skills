@@ -6,7 +6,7 @@ license: MIT
 
 # Profile a CSV
 
-Create a read-only data-quality observation. Prefer the interactive HTML report when the user wants to inspect patterns and drill into columns. Use Markdown for a compact review artifact, and JSON for downstream automation.
+Create a read-only data-quality observation. Prefer the interactive HTML report when the user wants to inspect patterns and drill into columns. Use Markdown for a compact review artifact, and JSON for downstream automation. Keep deterministic findings authoritative.
 
 Run the analyzer with an explicit input and output:
 
@@ -16,6 +16,8 @@ python scripts/analyze_csv.py /path/to/input.csv --format markdown --output /pat
 ```
 
 Resolve the script and its assets relative to this skill folder. Read [report formats](references/report-formats.md) for output choice and CLI options. Read [interpretation notes](references/interpretation.md) before turning detected signals into recommendations.
+
+When the user asks for semantic roles, decision-model annotations, or Laya, read [Laya semantic review](references/laya-semantic-review.md). Run Laya as an optional shadow stage over the aggregate JSON profile, then attach its output with `--semantic-review`. Do not install or download the roughly 1.7 GB model unless the user asked to run the Laya stage. Never let a model annotation alter the deterministic quality score or suppress a finding.
 
 The HTML should lead with the overall quality signal, then ranked findings, searchable column diagnostics, sampled issue rows, and transparent method limits. It is standalone and works offline. Generate it in a user-accessible project or artifact directory and open or link it after generation when the environment supports that.
 

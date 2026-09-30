@@ -23,8 +23,9 @@
       <a href="#overview" data-section="overview"><span>01</span> Overview</a>
       <a href="#findings" data-section="findings"><span>02</span> Findings</a>
       <a href="#columns" data-section="columns"><span>03</span> Columns</a>
-      <a href="#rows" data-section="rows"><span>04</span> Row samples</a>
-      <a href="#method" data-section="method"><span>05</span> Method</a>
+      <a id="semantic-nav" href="#semantic" data-section="semantic" hidden><span>04</span> Semantic review</a>
+      <a href="#rows" data-section="rows"><span>05</span> Row samples</a>
+      <a href="#method" data-section="method"><span>06</span> Method</a>
       <div class="rail-foot"><span class="pulse"></span><span>Generated offline<br>No data transmitted</span></div>
     </aside>
     <main id="main">
@@ -55,6 +56,12 @@
         <div class="panel-head columns-head"><div><p class="eyebrow">SCHEMA LENS</p><h2>Column diagnostics</h2></div><label class="search"><span>⌕</span><input id="column-search" type="search" placeholder="Find a column or type…" aria-label="Search columns"></label></div>
         <div class="table-wrap"><table><thead><tr><th>Column</th><th>Signal</th><th>Type</th><th>Complete</th><th>Distinct</th><th>Issues</th><th></th></tr></thead><tbody id="column-table"></tbody></table></div>
         <p id="column-empty" class="empty" hidden>No columns match this search.</p>
+      </section>
+      <section class="panel report-section semantic-panel" id="semantic" hidden>
+        <div class="panel-head semantic-head"><div><p class="eyebrow">SYSTEM ONE · SHADOW MODE</p><h2>Laya semantic review</h2><p id="semantic-summary" class="subtle"></p></div><span class="shadow-pill">ADVISORY</span></div>
+        <div class="semantic-callout"><strong>Deterministic checks remain authoritative.</strong><span>Laya adds typed semantic signals from column names and aggregate statistics. Low-confidence decisions are routed to review and never alter the quality score.</span></div>
+        <div id="semantic-cards" class="semantic-grid"></div>
+        <div class="semantic-foot"><span id="semantic-model"></span><span id="semantic-privacy"></span></div>
       </section>
       <section class="panel report-section" id="rows">
         <div class="panel-head"><div><p class="eyebrow">TRACE VIEW</p><h2>Sampled issue rows</h2><p id="privacy-copy" class="subtle"></p></div></div>

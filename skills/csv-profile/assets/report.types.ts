@@ -41,8 +41,24 @@ export interface ColumnProfile {
   key_candidate: boolean;
 }
 
-export interface CsvProfileReport {
+export interface SemanticDecision {
+  label: string;
+  confidence: number;
+  probabilities: Record<string, number>;
+}
+
+export interface SemanticReview {
   schema_version: "1.0";
+  generated_at: string;
+  source: { name: string; profile_schema_version: string; aggregate_sha256: string };
+  engine: { name: string; runtime: string; model: string };
+  policy: { mode: "shadow"; confidence_threshold: number; low_confidence_action: "review" };
+  privacy: { raw_values_sent: false; input: string };
+  columns: Array<{ index: number; name: string; semantic_role: SemanticDecision; review_priority: SemanticDecision; gate: "accepted" | "review" }>;
+}
+
+export interface CsvProfileReport {
+  schema_version: "1.1";
   generated_at: string;
   source: { name: string; path: string; bytes: number; delimiter: string; encoding: string };
   summary: {
@@ -56,6 +72,7 @@ export interface CsvProfileReport {
   row_samples: Array<{ row: number; issues: Array<{ column: string; issue: string }>; values?: string[] }>;
   width_issue_samples: Array<{ row: number; expected: number; actual: number }>;
   privacy: { values_included: boolean; row_sample_limit: number };
+  semantic_review?: SemanticReview;
   methodology: {
     null_tokens: string[]; numeric_outliers: string; type_detection: string;
     score_deductions: Record<string, number>; limits: string[];

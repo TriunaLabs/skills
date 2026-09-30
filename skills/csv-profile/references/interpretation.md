@@ -18,3 +18,5 @@ The scan counts rows, nulls, types, whitespace, and duplicates across the full f
 HTML and Markdown exclude raw values by default. `--include-values` adds values for sampled issue rows to the generated local artifact, so treat that artifact like the source CSV. No report code makes network requests.
 
 The 0–100 score is a transparent triage aid. It deducts bounded points for missing data, mixed types, malformed rows, duplicate rows, header problems, and whitespace. It does not measure semantic correctness, fitness for a particular model, bias, provenance, or compliance.
+
+Treat Laya output as a separate semantic hypothesis. `accepted` means both typed decisions crossed the configured confidence gate; it does not mean the column is correct or safe. Review the model on representative labeled CSVs before using its confidence threshold for workflow automation.

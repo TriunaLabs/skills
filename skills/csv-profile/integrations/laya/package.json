@@ -1,0 +1,8 @@
+{
+  "name": "csv-profile-laya-review",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "dependencies": { "@receptron/laya": "0.1.2" },
+  "scripts": { "check": "node --check laya_review.mjs" }
+}

@@ -1,0 +1,22 @@
+.semantic-head { align-items: center; }
+.shadow-pill { font: 700 9px ui-monospace, monospace; letter-spacing: .12em; color: var(--green); border: 1px solid var(--green); padding: 6px 9px; border-radius: 99px; }
+.semantic-callout { display: flex; gap: 10px; align-items: baseline; border-left: 3px solid var(--lime); background: var(--surface-2); padding: 12px 14px; margin-bottom: 14px; border-radius: 0 8px 8px 0; font-size: 11px; }
+.semantic-callout span { color: var(--muted); }
+.semantic-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.semantic-card { border: 1px solid var(--line); border-radius: 9px; padding: 13px; }
+.semantic-card-head { display: flex; justify-content: space-between; gap: 10px; align-items: center; margin-bottom: 12px; }
+.semantic-card-head strong { overflow-wrap: anywhere; }
+.gate { font: 700 8px ui-monospace, monospace; letter-spacing: .08em; padding: 4px 6px; border-radius: 99px; }
+.gate.accepted { color: var(--green); background: color-mix(in srgb, var(--green) 12%, transparent); }
+.gate.review { color: var(--amber); background: color-mix(in srgb, var(--amber) 12%, transparent); }
+.decision-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.decision > span { display: block; font: 8px ui-monospace, monospace; letter-spacing: .09em; color: var(--muted); }
+.decision > strong { display: block; font-size: 12px; margin: 3px 0 6px; text-transform: capitalize; }
+.confidence { height: 4px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+.confidence i { display: block; height: 100%; background: var(--green); }
+.decision small { font-size: 8px; color: var(--muted); }
+.semantic-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font: 9px ui-monospace, monospace; color: var(--muted); }
+@media (max-width: 650px) {
+  .semantic-grid { grid-template-columns: 1fr; }
+  .semantic-callout, .semantic-foot { align-items: flex-start; flex-direction: column; }
+}

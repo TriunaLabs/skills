@@ -248,7 +248,7 @@ def analyze(
     }
     score = max(0, round(100 - sum(deductions.values())))
     return {
-        "schema_version": "1.0", "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "schema_version": "1.1", "generated_at": datetime.now().astimezone().isoformat(timespec="seconds"),
         "source": {"name": source.name, "path": str(source.resolve()), "bytes": source.stat().st_size, "delimiter": delimiter, "encoding": encoding},
         "summary": {
             "rows": row_count, "rectangular_rows": valid_row_count, "columns": len(headers), "cells": total_cells, "missing": total_missing,
@@ -274,6 +274,24 @@ def analyze(
     }
 
 
+def attach_semantic_review(report: dict[str, Any], review_path: str | Path) -> dict[str, Any]:
+    """Attach a separately produced, aggregate-only semantic review."""
+    path = Path(review_path)
+    review = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(review, dict) or review.get("schema_version") != "1.0":
+        raise ValueError("semantic review must use schema_version 1.0")
+    if review.get("source", {}).get("name") != report["source"]["name"]:
+        raise ValueError("semantic review source does not match the CSV filename")
+    expected = [(column["index"], column["name"]) for column in report["columns"]]
+    observed = [(column.get("index"), column.get("name")) for column in review.get("columns", [])]
+    if expected != observed:
+        raise ValueError("semantic review columns do not match the current CSV profile")
+    if review.get("privacy", {}).get("raw_values_sent") is not False:
+        raise ValueError("semantic review must declare raw_values_sent as false")
+    report["semantic_review"] = review
+    return report
+
+
 def profile(path: str | Path, delimiter: str = ",") -> dict[str, Any]:
     report = analyze(path, delimiter=delimiter)
     return {
@@ -286,7 +304,7 @@ def profile(path: str | Path, delimiter: str = ",") -> dict[str, Any]:
 
 def render_html(report: dict[str, Any]) -> str:
     template = (ASSET_DIR / "report-template.html").read_text(encoding="utf-8")
-    styles = (ASSET_DIR / "report.css").read_text(encoding="utf-8")
+    styles = (ASSET_DIR / "report.css").read_text(encoding="utf-8") + "\n" + (ASSET_DIR / "semantic.css").read_text(encoding="utf-8")
     script = (ASSET_DIR / "report.js").read_text(encoding="utf-8")
     data = json.dumps(report, ensure_ascii=False).replace("</", "<\\/")
     return template.replace("/*__CSV_PROFILE_CSS__*/", styles).replace("/*__CSV_PROFILE_DATA__*/", data).replace("/*__CSV_PROFILE_JS__*/", script)
@@ -313,6 +331,23 @@ def render_markdown(report: dict[str, Any]) -> str:
         unique = f'≥{column["unique"]:,}' if column["unique_is_lower_bound"] else f'{column["unique"]:,}'
         outliers = column["numeric"]["outliers"] if column["numeric"] else 0
         lines.append(f'| {column["name"]} | {column["inferred_type"]} | {column["missing"]:,} ({column["missing_percent"]}%) | {unique} | {column["type_issues"]:,} | {outliers:,} |')
+    review = report.get("semantic_review")
+    if review:
+        threshold = review["policy"]["confidence_threshold"]
+        lines.extend([
+            "", "## Laya semantic review", "",
+            f'**Shadow mode · confidence threshold {threshold:.0%}.** These typed decisions annotate the deterministic profile; they do not change its findings or score.', "",
+            "| Column | Suggested role | Confidence | Review priority | Confidence | Gate |",
+            "| --- | --- | ---: | --- | ---: | --- |",
+        ])
+        for item in review["columns"]:
+            role = item["semantic_role"]
+            priority = item["review_priority"]
+            lines.append(
+                f'| {item["name"]} | {role["label"]} | {role["confidence"]:.1%} | '
+                f'{priority["label"]} | {priority["confidence"]:.1%} | {item["gate"]} |'
+            )
+        lines.extend(["", f'Model: `{review["engine"]["model"]}`. Input: column names and aggregate profile statistics only; raw values sent: no.'])
     lines.extend(["", "## How to read this report", "", report["methodology"]["numeric_outliers"], "", "Quality score deductions:"])
     lines.extend(f"- {label}: −{points} points" for label, points in report["methodology"]["score_deductions"].items())
     lines.append("")
@@ -330,6 +365,7 @@ def main(default_format: str = "html") -> None:
     parser.add_argument("--include-values", action="store_true", help="Include values for sampled issue rows in the local report")
     parser.add_argument("--row-sample-limit", type=int, default=120)
     parser.add_argument("--null-token", action="append", dest="extra_null_tokens", default=[])
+    parser.add_argument("--semantic-review", help="Attach aggregate-only Laya review JSON produced by integrations/laya/laya_review.mjs")
     args = parser.parse_args()
     if len(args.delimiter) != 1:
         parser.error("--delimiter must be one character")
@@ -338,6 +374,8 @@ def main(default_format: str = "html") -> None:
     try:
         tokens = NULL_TOKENS | {token.casefold() for token in args.extra_null_tokens}
         report = analyze(args.path, args.delimiter, args.encoding, tokens, args.include_values, args.row_sample_limit)
+        if args.semantic_review:
+            attach_semantic_review(report, args.semantic_review)
         content = json.dumps(report, indent=2, ensure_ascii=False) + "\n" if args.format == "json" else render_markdown(report) if args.format == "markdown" else render_html(report)
         if args.output:
             output = Path(args.output)

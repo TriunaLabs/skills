@@ -139,6 +139,32 @@
   renderColumns();
   $("column-search").addEventListener("input", (event) => renderColumns(event.target.value));
 
+  if (report.semantic_review) {
+    const review = report.semantic_review;
+    const threshold = Number(review.policy.confidence_threshold || 0);
+    $("semantic").hidden = false;
+    $("semantic-nav").hidden = false;
+    $("semantic-summary").textContent = `${review.columns.length} columns reviewed · ${(threshold * 100).toFixed(0)}% confidence gate · ${review.policy.mode}`;
+    review.columns.forEach((item) => {
+      const card = node("article", undefined, "semantic-card");
+      const head = node("div", undefined, "semantic-card-head");
+      head.append(node("strong", item.name), node("span", item.gate === "accepted" ? "ACCEPTED" : "REVIEW", `gate ${item.gate}`));
+      const decisions = node("div", undefined, "decision-pair");
+      [["SUGGESTED ROLE", item.semantic_role], ["REVIEW PRIORITY", item.review_priority]].forEach(([label, decision]) => {
+        const block = node("div", undefined, "decision");
+        block.append(node("span", label), node("strong", decision.label));
+        const meter = node("div", undefined, "confidence");
+        const fill = node("i"); fill.style.width = `${Math.max(0, Math.min(100, decision.confidence * 100))}%`; meter.append(fill);
+        block.append(meter, node("small", `${(decision.confidence * 100).toFixed(1)}% confidence`));
+        decisions.append(block);
+      });
+      card.append(head, decisions);
+      $("semantic-cards").append(card);
+    });
+    $("semantic-model").textContent = `${review.engine.name} · ${review.engine.model}`;
+    $("semantic-privacy").textContent = review.privacy.raw_values_sent ? "Raw values transmitted" : "Aggregate profile only · no raw values sent";
+  }
+
   $("privacy-copy").textContent = report.privacy.values_included
     ? `Values are included for up to ${format(report.privacy.row_sample_limit)} sampled issue rows. Keep this report private if the CSV is sensitive.`
     : `Values are excluded. This view shows row numbers and issue labels for up to ${format(report.privacy.row_sample_limit)} rows.`;

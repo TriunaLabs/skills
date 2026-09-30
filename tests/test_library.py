@@ -115,5 +115,52 @@ class LibraryTests(unittest.TestCase):
             self.assertEqual(report['summary']['width_issues'], 3)
             self.assertEqual(len(report['width_issue_samples']), 1)
 
+    def test_laya_semantic_review_attaches_to_html_and_markdown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / 'semantic.csv'
+            path.write_text('id,amount\n1,10\n2,20\n', encoding='utf-8')
+            report = analyzer.analyze(path)
+            columns = []
+            for column in report['columns']:
+                columns.append({
+                    'index': column['index'], 'name': column['name'],
+                    'semantic_role': {'label': 'identifier', 'confidence': .91, 'probabilities': {'identifier': .91}},
+                    'review_priority': {'label': 'routine', 'confidence': .88, 'probabilities': {'routine': .88}},
+                    'gate': 'accepted',
+                })
+            review = {
+                'schema_version': '1.0', 'generated_at': '2026-09-30T00:00:00Z',
+                'source': {'name': path.name, 'profile_schema_version': report['schema_version'], 'aggregate_sha256': 'test'},
+                'engine': {'name': 'Laya', 'runtime': '@receptron/laya@0.1.2', 'model': 'fixture'},
+                'policy': {'mode': 'shadow', 'confidence_threshold': .8, 'low_confidence_action': 'review'},
+                'privacy': {'raw_values_sent': False, 'input': 'aggregates'}, 'columns': columns,
+            }
+            review_path = root / 'review.json'
+            review_path.write_text(json.dumps(review), encoding='utf-8')
+            analyzer.attach_semantic_review(report, review_path)
+            html = analyzer.render_html(report)
+            markdown = analyzer.render_markdown(report)
+            self.assertIn('Laya semantic review', html)
+            self.assertIn('semantic_role', html)
+            self.assertIn('## Laya semantic review', markdown)
+            self.assertIn('80%', markdown)
+
+    def test_semantic_review_rejects_raw_value_declaration(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / 'semantic.csv'
+            path.write_text('id\n1\n', encoding='utf-8')
+            report = analyzer.analyze(path)
+            review = {
+                'schema_version': '1.0', 'source': {'name': path.name},
+                'privacy': {'raw_values_sent': True},
+                'columns': [{'index': 0, 'name': 'id'}],
+            }
+            review_path = root / 'review.json'
+            review_path.write_text(json.dumps(review), encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'raw_values_sent'):
+                analyzer.attach_semantic_review(report, review_path)
+
 if __name__ == '__main__':
     unittest.main()

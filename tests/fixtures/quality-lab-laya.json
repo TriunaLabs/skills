@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-09-30T00:00:00Z",
+  "source": { "name": "quality-lab.csv", "profile_schema_version": "1.1", "aggregate_sha256": "ui-fixture" },
+  "engine": { "name": "Laya", "runtime": "@receptron/laya@0.1.2", "model": "test-fixture" },
+  "policy": { "mode": "shadow", "confidence_threshold": 0.8, "low_confidence_action": "review" },
+  "privacy": { "raw_values_sent": false, "input": "column names and aggregate profile statistics" },
+  "columns": [
+    { "index": 0, "name": "record_id", "semantic_role": { "label": "identifier", "confidence": 0.94, "probabilities": { "identifier": 0.94 } }, "review_priority": { "label": "inspect", "confidence": 0.83, "probabilities": { "inspect": 0.83 } }, "gate": "accepted" },
+    { "index": 1, "name": "amount", "semantic_role": { "label": "measure", "confidence": 0.92, "probabilities": { "measure": 0.92 } }, "review_priority": { "label": "resolve", "confidence": 0.89, "probabilities": { "resolve": 0.89 } }, "gate": "accepted" },
+    { "index": 2, "name": "status", "semantic_role": { "label": "category", "confidence": 0.91, "probabilities": { "category": 0.91 } }, "review_priority": { "label": "inspect", "confidence": 0.77, "probabilities": { "inspect": 0.77 } }, "gate": "review" },
+    { "index": 3, "name": "observed_at", "semantic_role": { "label": "timestamp", "confidence": 0.96, "probabilities": { "timestamp": 0.96 } }, "review_priority": { "label": "resolve", "confidence": 0.88, "probabilities": { "resolve": 0.88 } }, "gate": "accepted" },
+    { "index": 4, "name": "region", "semantic_role": { "label": "category", "confidence": 0.87, "probabilities": { "category": 0.87 } }, "review_priority": { "label": "inspect", "confidence": 0.84, "probabilities": { "inspect": 0.84 } }, "gate": "accepted" },
+    { "index": 5, "name": "notes", "semantic_role": { "label": "free_text", "confidence": 0.90, "probabilities": { "free_text": 0.90 } }, "review_priority": { "label": "routine", "confidence": 0.72, "probabilities": { "routine": 0.72 } }, "gate": "review" }
+  ]
+}
