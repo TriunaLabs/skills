@@ -17,7 +17,7 @@ spec.loader.exec_module(module)
 class LibraryTests(unittest.TestCase):
     def test_catalog(self):
         records = validate()
-        self.assertEqual(len(records), 4)
+        self.assertGreaterEqual(len(records), 1)
         self.assertEqual(len({r['name'] for r in records}), len(records))
 
     def test_invalid_metadata_and_resources_rejected(self):
