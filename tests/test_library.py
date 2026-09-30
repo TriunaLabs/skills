@@ -42,6 +42,20 @@ class LibraryTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'compatibility'):
                 validate(root)
 
+    def test_preview_metadata_is_validated(self):
+        records = validate()
+        csv_profile = next(record for record in records if record['name'] == 'csv-profile')
+        self.assertEqual(csv_profile['preview']['src'], 'assets/catalog-preview.png')
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            shutil.copytree(ROOT / 'skills/csv-profile', root / 'skills/csv-profile')
+            meta = root / 'skills/csv-profile/catalog.json'
+            data = json.loads(meta.read_text())
+            data['preview']['src'] = '../../outside.png'
+            meta.write_text(json.dumps(data))
+            with self.assertRaisesRegex(ValueError, 'preview'):
+                validate(root)
+
     def test_csv_multiline_bom_missing_and_width(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / 'data.csv'

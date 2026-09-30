@@ -51,6 +51,8 @@ h2{font-size:25px;line-height:1.25;letter-spacing:-.035em;margin:0}
 .card:hover{border-color:#94b09b;box-shadow:0 5px 20px #18272309}
 .card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:17px}
 .icon{font:18px ui-monospace,monospace;border:1px solid var(--line);background:#edf1e6;width:39px;height:39px;border-radius:7px;display:grid;place-items:center}
+.card-identity{display:flex;align-items:center;gap:9px}
+.version{font:10px ui-monospace,monospace;letter-spacing:.04em;color:var(--muted);border:1px solid var(--line);background:white;padding:3px 7px;border-radius:999px}
 .category{font:10px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.08em;color:var(--green)}
 .card h3{font-size:20px;letter-spacing:-.025em;margin:0 0 9px}
 .card p{font-size:13px;color:var(--muted);margin:0 0 20px;line-height:1.65}
@@ -91,6 +93,9 @@ dialog h3{font-size:14px;margin-top:25px}
 dialog p,dialog li{font-size:13px}
 dialog pre{white-space:pre-wrap;font:12px/1.7 ui-monospace,monospace;background:white;padding:20px;border:1px solid var(--line);overflow-wrap:anywhere}
 dialog blockquote{border-left:3px solid var(--green);margin:0;padding:10px 16px;font-size:14px}
+#detail-preview{margin:22px 0 24px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:white}
+#detail-preview img{display:block;width:100%;height:auto}
+#detail-preview figcaption{padding:10px 14px;color:var(--muted);font-size:11px;border-top:1px solid var(--line)}
 .detail-links{display:flex;align-items:center;gap:20px;flex-wrap:wrap;font-size:12px}
 .skip{position:absolute;left:10px;top:-100px;background:white;padding:10px;z-index:5}
 .skip:focus{top:10px}

@@ -10,7 +10,7 @@
     "laya",
     "semantic-review"
   ],
-  "version": "0.3.1",
+  "version": "0.3.2",
   "license": "MIT",
   "author": "TriunaLabs",
   "origin": "Original starter authored for this public library; not copied from installed skills.",
@@ -26,5 +26,9 @@
     "Generate an interactive HTML quality report for this CSV and show me the nulls, type conflicts, duplicates, category variants, and outliers.",
     "Create a Markdown profile of this CSV without including raw row values.",
     "Profile this CSV, then use Laya in shadow mode to suggest semantic column roles and review priorities from aggregate statistics only."
-  ]
+  ],
+  "preview": {
+    "src": "assets/catalog-preview.png",
+    "alt": "CSV Profile report showing Laya semantic review cards with confidence-gated column roles and review priorities."
+  }
 }

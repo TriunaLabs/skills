@@ -39,9 +39,10 @@ def validate(root=ROOT):
             if not resource.is_relative_to(folder.resolve()) or not resource.is_file():
                 raise ValueError(f'{name}: broken or escaping reference {target}')
         meta = json.loads((folder / 'catalog.json').read_text(encoding='utf-8'))
-        expected = {'title', 'category', 'tags', 'version', 'license', 'author', 'origin', 'requirements', 'compatibility', 'examples'}
-        if set(meta) != expected:
-            raise ValueError(f'{name}: metadata keys must be {sorted(expected)}')
+        required = {'title', 'category', 'tags', 'version', 'license', 'author', 'origin', 'requirements', 'compatibility', 'examples'}
+        optional = {'preview'}
+        if not required <= set(meta) or set(meta) - required - optional:
+            raise ValueError(f'{name}: metadata keys must be {sorted(required)} with optional {sorted(optional)}')
         for field in ['title', 'category', 'author', 'origin']:
             if not isinstance(meta[field], str) or not meta[field].strip():
                 raise ValueError(f'{name}: invalid {field}')
@@ -56,6 +57,15 @@ def validate(root=ROOT):
             raise ValueError(f'{name}: all compatibility targets required')
         if any(v not in ['format-compatible', 'untested', 'unsupported'] for v in meta['compatibility'].values()):
             raise ValueError(f'{name}: unsupported compatibility claim')
+        if 'preview' in meta:
+            preview = meta['preview']
+            if not isinstance(preview, dict) or set(preview) != {'src', 'alt'}:
+                raise ValueError(f'{name}: preview must contain src and alt')
+            if not all(isinstance(preview.get(field), str) and preview[field].strip() for field in ['src', 'alt']):
+                raise ValueError(f'{name}: preview src and alt must be nonempty strings')
+            preview_path = (folder / preview['src']).resolve()
+            if not preview_path.is_relative_to(folder.resolve()) or not preview_path.is_file():
+                raise ValueError(f'{name}: preview must reference a file inside the skill package')
         records.append(dict(meta, name=name, description=description, instructions=parts[2].strip()))
     return records
 

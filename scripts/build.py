@@ -12,8 +12,13 @@ def build():
     if out.is_symlink() or out.resolve() != ROOT.resolve() / 'dist':
         raise ValueError('Unsafe build output path')
     if out.exists():
-        shutil.rmtree(out)
-    out.mkdir()
+        for child in out.iterdir():
+            if child.is_symlink() or child.is_file():
+                child.unlink()
+            else:
+                shutil.rmtree(child)
+    else:
+        out.mkdir()
     for path in (ROOT / 'site').iterdir():
         if path.is_file():
             shutil.copy2(path, out / path.name)

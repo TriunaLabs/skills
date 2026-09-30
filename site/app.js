@@ -12,7 +12,9 @@ function render() {
   for (const s of matches) {
     const card = el('article', '', 'card');
     const top = el('div', '', 'card-top');
-    top.append(el('span', ({Planning:'◇',Engineering:'⌘',Documentation:'≡',Data:'▦'})[s.category] || '◇', 'icon'), el('span', s.category, 'category'));
+    const identity = el('div', '', 'card-identity');
+    identity.append(el('span', `v${s.version}`, 'version'), el('span', s.category, 'category'));
+    top.append(el('span', ({Planning:'◇',Engineering:'⌘',Documentation:'≡',Data:'▦'})[s.category] || '◇', 'icon'), identity);
     card.append(top, el('h3', s.title), el('p', s.description));
     const tags = el('div', '', 'tags');
     s.tags.forEach(t => tags.append(el('span', t, 'tag')));
@@ -32,6 +34,18 @@ function show(s, button) {
   returnFocus = button;
   $('detail-title').textContent = s.title;
   $('detail-description').textContent = s.description;
+  const preview = $('detail-preview');
+  if (s.preview) {
+    $('detail-image').src = `skills/${s.name}/${s.preview.src}`;
+    $('detail-image').alt = s.preview.alt;
+    $('detail-caption').textContent = s.preview.alt;
+    preview.hidden = false;
+  } else {
+    $('detail-image').removeAttribute('src');
+    $('detail-image').alt = '';
+    $('detail-caption').textContent = '';
+    preview.hidden = true;
+  }
   $('detail-meta').replaceChildren(el('p', `v${s.version} · ${s.license} · ${s.author}`), el('p', s.origin));
   const list=el('ul',''); s.requirements.forEach(r=>list.append(el('li',r))); $('detail-meta').append(el('h3','Requirements'),list);
   Object.entries(s.compatibility).forEach(([k,v])=>$('detail-meta').append(el('p',`${names[k]}: ${v}`)));
