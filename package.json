@@ -1,0 +1,1 @@
+{"name":"triunalabs-skills","private":true,"scripts":{"build":"python scripts/build.py","validate":"python scripts/validate.py","test":"python -m unittest discover -s tests","preview":"python -m http.server 4173 --directory dist"}}

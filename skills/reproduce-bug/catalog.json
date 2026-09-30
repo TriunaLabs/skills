@@ -1,0 +1,24 @@
+{
+  "title": "Reproduce a bug",
+  "category": "Engineering",
+  "tags": [
+    "debugging",
+    "testing",
+    "reproduction"
+  ],
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "TriunaLabs",
+  "origin": "Original starter authored for this public library; not copied from installed skills.",
+  "requirements": [
+    "Repository read access; project runtime and test runner for execution."
+  ],
+  "compatibility": {
+    "codex": "format-compatible",
+    "claude-code": "format-compatible",
+    "other-agents": "untested"
+  },
+  "examples": [
+    "Turn an intermittent timezone bug report into a reproducible test."
+  ]
+}

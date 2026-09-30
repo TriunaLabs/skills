@@ -1,0 +1,24 @@
+{
+  "title": "Decision record",
+  "category": "Planning",
+  "tags": [
+    "architecture",
+    "decisions",
+    "tradeoffs"
+  ],
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "TriunaLabs",
+  "origin": "Original starter authored for this public library; not copied from installed skills.",
+  "requirements": [
+    "Read access to relevant project context; Markdown writing capability."
+  ],
+  "compatibility": {
+    "codex": "format-compatible",
+    "claude-code": "format-compatible",
+    "other-agents": "untested"
+  },
+  "examples": [
+    "Document whether our small team should use a queue or synchronous processing."
+  ]
+}

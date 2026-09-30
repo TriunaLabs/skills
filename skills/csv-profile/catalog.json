@@ -1,0 +1,24 @@
+{
+  "title": "Profile a CSV",
+  "category": "Data",
+  "tags": [
+    "csv",
+    "quality",
+    "python"
+  ],
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "TriunaLabs",
+  "origin": "Original starter authored for this public library; not copied from installed skills.",
+  "requirements": [
+    "Python 3.10+ for the included standard-library script; read access to the CSV."
+  ],
+  "compatibility": {
+    "codex": "format-compatible",
+    "claude-code": "format-compatible",
+    "other-agents": "untested"
+  },
+  "examples": [
+    "Check a CSV export for duplicate headers, uneven rows, and empty fields."
+  ]
+}

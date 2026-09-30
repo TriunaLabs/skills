@@ -1,0 +1,22 @@
+{
+  "title": "Your skill title",
+  "category": "Engineering",
+  "tags": [
+    "example"
+  ],
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "Your public name",
+  "origin": "Describe original authorship or licensed source.",
+  "requirements": [
+    "List required runtime, tools, or access."
+  ],
+  "compatibility": {
+    "codex": "format-compatible",
+    "claude-code": "format-compatible",
+    "other-agents": "untested"
+  },
+  "examples": [
+    "A realistic user request."
+  ]
+}

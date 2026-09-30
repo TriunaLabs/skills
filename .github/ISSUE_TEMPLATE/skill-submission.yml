@@ -1,0 +1,25 @@
+name: Skill submission
+description: Propose a focused public skill
+title: "[Skill] "
+body:
+  - type: textarea
+    id: purpose
+    attributes:
+      label: Workflow and trigger
+      description: What should this skill accomplish? Include a realistic request and a non-trigger example.
+    validations:
+      required: true
+  - type: textarea
+    id: requirements
+    attributes:
+      label: Requirements and compatibility
+      description: Tools, runtimes, access, agent targets, and any actual testing evidence.
+    validations:
+      required: true
+  - type: textarea
+    id: provenance
+    attributes:
+      label: Provenance and license
+      description: Is this original? If adapted, provide the selected source and redistribution license. Do not paste private skills.
+    validations:
+      required: true

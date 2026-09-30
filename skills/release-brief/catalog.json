@@ -1,0 +1,24 @@
+{
+  "title": "Release brief",
+  "category": "Documentation",
+  "tags": [
+    "releases",
+    "git",
+    "writing"
+  ],
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "TriunaLabs",
+  "origin": "Original starter authored for this public library; not copied from installed skills.",
+  "requirements": [
+    "Git and local repository access; issue access only when referenced."
+  ],
+  "compatibility": {
+    "codex": "format-compatible",
+    "claude-code": "format-compatible",
+    "other-agents": "untested"
+  },
+  "examples": [
+    "Draft release notes for v1.2.0..v1.3.0 for application users."
+  ]
+}
