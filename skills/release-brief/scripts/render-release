@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render a release evidence artifact as JSON, Markdown, or interactive HTML."""
+"""Render a release artifact as JSON, Markdown, or interactive print-to-PDF HTML."""
 import argparse
 import html
 import json
@@ -11,8 +11,8 @@ ASSETS = Path(__file__).resolve().parents[1] / "assets"
 
 def read_artifact(path):
     data = json.loads(Path(path).read_text(encoding="utf-8"))
-    if data.get("schema_version") != "1.0" or not isinstance(data.get("entries"), list) or not isinstance(data.get("source"), dict):
-        raise ValueError("input is not a release-brief 1.0 artifact")
+    if data.get("schema_version") not in {"1.0", "1.1"} or not isinstance(data.get("entries"), list) or not isinstance(data.get("source"), dict):
+        raise ValueError("input is not a supported release-brief artifact")
     return data
 
 
@@ -27,6 +27,15 @@ def render_markdown(data):
         f"# {release_name}", "",
         f"> **Draft** for **{data.get('audience')}** from `{source.get('base_ref')}..{source.get('target_ref')}`. Git history does not establish deployment.",
     ]
+    collaboration = data.get("collaboration", {})
+    confidence = data.get("confidence", {})
+    contributors = collaboration.get("contributors", [])
+    if contributors:
+        lines.extend(["", "## Collaboration and scope", "", f"- Contributors: {collaboration.get('contributor_count', len(contributors))}", f"- Commits: {data.get('summary', {}).get('commits', 0)}", f"- Commit span: {collaboration.get('commit_span_hours', 0)} hours", "- Commit counts describe provenance and coordination, not individual productivity.", ""])
+        lines.extend([f"- {item.get('name')}: {item.get('commits')} commits across {item.get('files_touched')} files; {', '.join(item.get('categories', []))}" for item in contributors])
+    if confidence.get("domains"):
+        lines.extend(["", "## Release evidence matrix", ""])
+        lines.extend([f"- **{item.get('label')} — {item.get('status')}**: {item.get('detail')}" for item in confidence["domains"]])
     groups = {}
     for entry in data.get("entries", []):
         if entry.get("included"):
@@ -49,6 +58,20 @@ def render_markdown(data):
     lines.append(f"- Deployment: {deployment.get('status', 'unknown')} ({deployment.get('evidence_ref') or 'no evidence reference'})")
     rollback = evidence.get("rollback", {})
     lines.append(f"- Rollback: {rollback.get('status', 'unknown')} ({rollback.get('evidence_ref') or 'no evidence reference'})")
+    lines.append(f"- Observability: {evidence.get('observability', {}).get('status', 'unknown')} ({evidence.get('observability', {}).get('evidence_ref') or 'no evidence reference'})")
+    lines.append(f"- Rollout: {evidence.get('rollout', {}).get('status', 'unknown')} ({evidence.get('rollout', {}).get('evidence_ref') or 'no evidence reference'})")
+    scans = evidence.get("security_scans", [])
+    if scans:
+        lines.extend(["", "## Security and supply chain", ""])
+        lines.extend([f"- {scan.get('provider')} {scan.get('scope', 'scan')}: {scan.get('status')} ({scan.get('evidence_ref') or 'no evidence reference'})" for scan in scans])
+        delta = confidence.get("security_delta", {})
+        for field in ("introduced", "resolved", "remaining"):
+            counts = delta.get(field, {})
+            lines.append(f"- {field.title()}: " + ", ".join(f"{level} {counts.get(level, 0)}" for level in ("critical", "high", "medium", "low")))
+    dependency = evidence.get("dependency_review", {})
+    lines.append(f"- Dependency review: {dependency.get('status', 'unknown')}; {dependency.get('added', 0)} added, {dependency.get('updated', 0)} updated, {dependency.get('vulnerable_added', 0)} vulnerable added.")
+    supply = evidence.get("supply_chain", {})
+    lines.append("- Supply chain: " + ", ".join(f"{name} {supply.get(name, {}).get('status', 'unknown')}" for name in ("sbom", "provenance", "signature")))
     if data.get("risk_flags"):
         lines.extend(["", "## Review signals", ""] + [f"- **{item.get('severity')} · {item.get('kind')}** — {item.get('reason')}" for item in data["risk_flags"]])
     limitations = evidence.get("known_limitations", [])

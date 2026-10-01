@@ -11,6 +11,8 @@ from pathlib import Path
 AUDIENCES = {"users", "developers", "operators", "executives"}
 TEST_STATUSES = {"passed", "failed", "partial", "not_run", "unknown"}
 DEPLOYMENT_STATUSES = {"deployed", "partially_deployed", "not_deployed", "unknown"}
+EVIDENCE_STATUSES = {"verified", "passed", "ready", "tested", "documented", "present", "attention", "failed", "partial", "missing", "unknown", "not_applicable"}
+SEVERITIES = ("critical", "high", "medium", "low")
 CATEGORY_AUDIENCES = {
     "Breaking": ["users", "developers", "operators", "executives"],
     "Security": ["users", "developers", "operators", "executives"],
@@ -38,22 +40,53 @@ def resolve(repo, ref):
 
 
 def read_evidence(path):
-    evidence = {"issues": [], "tests": [], "deployment": {"status": "unknown"}, "rollback": {"status": "unknown"}, "known_limitations": []}
+    evidence = {
+        "issues": [], "tests": [], "security_scans": [],
+        "dependency_review": {"status": "unknown", "added": 0, "updated": 0, "removed": 0, "vulnerable_added": 0, "license_changes": 0},
+        "supply_chain": {"sbom": {"status": "unknown"}, "provenance": {"status": "unknown"}, "signature": {"status": "unknown"}},
+        "deployment": {"status": "unknown"}, "rollback": {"status": "unknown"},
+        "observability": {"status": "unknown"}, "rollout": {"status": "unknown"},
+        "delivery_metrics": {}, "known_limitations": [],
+    }
     if path:
         supplied = json.loads(Path(path).read_text(encoding="utf-8"))
         if not isinstance(supplied, dict):
             raise ValueError("evidence must be a JSON object")
         evidence.update(supplied)
-    if not isinstance(evidence.get("issues"), list) or not isinstance(evidence.get("tests"), list):
-        raise ValueError("evidence issues and tests must be arrays")
+    if not isinstance(evidence.get("issues"), list) or not isinstance(evidence.get("tests"), list) or not isinstance(evidence.get("security_scans"), list):
+        raise ValueError("evidence issues, tests, and security_scans must be arrays")
     if not isinstance(evidence.get("known_limitations"), list) or not all(isinstance(item, str) for item in evidence["known_limitations"]):
         raise ValueError("known_limitations must be an array of strings")
     for test in evidence["tests"]:
         if not isinstance(test, dict) or test.get("status") not in TEST_STATUSES or not test.get("name"):
             raise ValueError("each test requires a name and supported status")
+    for scan in evidence.get("security_scans", []):
+        if not isinstance(scan, dict) or not scan.get("provider") or scan.get("status") not in TEST_STATUSES:
+            raise ValueError("each security scan requires a provider and supported status")
+        for field in ("introduced", "resolved", "remaining"):
+            values = scan.get(field, {})
+            if not isinstance(values, dict) or any(not isinstance(values.get(level, 0), int) or values.get(level, 0) < 0 for level in SEVERITIES):
+                raise ValueError(f"security scan {field} counts must be non-negative integers")
     deployment = evidence.get("deployment")
     if not isinstance(deployment, dict) or deployment.get("status") not in DEPLOYMENT_STATUSES:
         raise ValueError("deployment requires a supported status")
+    for field in ("dependency_review", "rollback", "observability", "rollout"):
+        item = evidence.get(field, {})
+        if not isinstance(item, dict) or item.get("status", "unknown") not in EVIDENCE_STATUSES:
+            raise ValueError(f"{field} requires a supported status")
+    dependency = evidence.get("dependency_review", {})
+    for field in ("added", "updated", "removed", "vulnerable_added", "license_changes"):
+        if not isinstance(dependency.get(field, 0), int) or dependency.get(field, 0) < 0:
+            raise ValueError(f"dependency_review.{field} must be a non-negative integer")
+    supply_chain = evidence.get("supply_chain", {})
+    if not isinstance(supply_chain, dict):
+        raise ValueError("supply_chain must be an object")
+    for field in ("sbom", "provenance", "signature"):
+        item = supply_chain.get(field, {"status": "unknown"})
+        if not isinstance(item, dict) or item.get("status", "unknown") not in EVIDENCE_STATUSES:
+            raise ValueError(f"supply_chain.{field} requires a supported status")
+    if not isinstance(evidence.get("delivery_metrics", {}), dict):
+        raise ValueError("delivery_metrics must be an object")
     return evidence
 
 
@@ -150,6 +183,93 @@ def risk_flags(commits, files):
     return flags
 
 
+def collaboration_summary(commits):
+    people = {}
+    for commit in commits:
+        author = commit["author"] or "Unknown author"
+        item = people.setdefault(author, {"name": author, "commits": 0, "files": set(), "categories": set(), "first_at": commit["authored_at"], "last_at": commit["authored_at"]})
+        item["commits"] += 1
+        item["files"].update(commit["paths"])
+        item["categories"].add(commit["category"])
+        item["first_at"] = min(item["first_at"], commit["authored_at"])
+        item["last_at"] = max(item["last_at"], commit["authored_at"])
+    total = max(len(commits), 1)
+    contributors = [{
+        "name": item["name"], "commits": item["commits"], "commit_share_percent": round(item["commits"] * 100 / total, 1),
+        "files_touched": len(item["files"]), "categories": sorted(item["categories"]), "first_at": item["first_at"], "last_at": item["last_at"],
+    } for item in people.values()]
+    contributors.sort(key=lambda item: (-item["commits"], item["name"].casefold()))
+    timestamps = sorted(commit["authored_at"] for commit in commits)
+    span_hours = 0.0
+    if len(timestamps) > 1:
+        span_hours = round((datetime.fromisoformat(timestamps[-1].replace("Z", "+00:00")) - datetime.fromisoformat(timestamps[0].replace("Z", "+00:00"))).total_seconds() / 3600, 1)
+    return {
+        "contributors": contributors, "contributor_count": len(contributors), "commit_span_hours": span_hours,
+        "largest_commit_share_percent": max((item["commit_share_percent"] for item in contributors), default=0),
+        "interpretation": "Commit and contributor counts describe release coordination and provenance, not individual productivity.",
+    }
+
+
+def security_delta(scans):
+    result = {field: {level: 0 for level in SEVERITIES} for field in ("introduced", "resolved", "remaining")}
+    for scan in scans:
+        for field in result:
+            for level in SEVERITIES:
+                result[field][level] += scan.get(field, {}).get(level, 0)
+    return result
+
+
+def evidence_matrix(evidence, files):
+    tests = evidence.get("tests", [])
+    scans = evidence.get("security_scans", [])
+    delta = security_delta(scans)
+    supply = evidence.get("supply_chain", {})
+    rollback = evidence.get("rollback", {})
+    observability = evidence.get("observability", {})
+    rollout = evidence.get("rollout", {})
+    dependency = evidence.get("dependency_review", {})
+
+    def state(label, status, detail, refs=None):
+        return {"label": label, "status": status, "detail": detail, "evidence_refs": [value for value in (refs or []) if value]}
+
+    if not tests or all(item["status"] in {"not_run", "unknown"} for item in tests):
+        quality_status = "unknown"
+    elif any(item["status"] in {"failed", "partial"} for item in tests):
+        quality_status = "attention"
+    else:
+        quality_status = "verified"
+    quality = state("Quality", quality_status, f"{sum(item['status'] == 'passed' for item in tests)} of {len(tests)} supplied test checks passed.", [item.get("evidence_ref") for item in tests])
+
+    new_severe = delta["introduced"]["critical"] + delta["introduced"]["high"]
+    if not scans or all(item["status"] in {"not_run", "unknown"} for item in scans):
+        security_status = "unknown"
+    elif new_severe or any(item["status"] in {"failed", "partial"} for item in scans):
+        security_status = "attention"
+    else:
+        security_status = "verified"
+    security = state("Security", security_status, f"{new_severe} new critical/high findings across {len(scans)} supplied scans.", [item.get("evidence_ref") for item in scans])
+
+    rollback_status = rollback.get("status", "unknown")
+    recoverability_status = "verified" if rollback_status in {"verified", "tested"} and rollback.get("evidence_ref") else "attention" if rollback_status in {"failed", "missing"} else "unknown"
+    recoverability = state("Recoverability", recoverability_status, f"Rollback is {rollback_status}; evidence is {'linked' if rollback.get('evidence_ref') else 'not linked'}.", [rollback.get("evidence_ref")])
+
+    ops_values = {observability.get("status", "unknown"), rollout.get("status", "unknown")}
+    operability_status = "attention" if ops_values & {"failed", "missing", "partial", "attention"} else "verified" if ops_values <= {"verified", "passed", "ready", "documented", "present", "not_applicable"} else "unknown"
+    operability = state("Operability", operability_status, f"Observability: {observability.get('status', 'unknown')}; rollout: {rollout.get('status', 'unknown')}.", [observability.get("evidence_ref"), rollout.get("evidence_ref")])
+
+    provenance_values = [supply.get(name, {}).get("status", "unknown") for name in ("sbom", "provenance", "signature")]
+    provenance_status = "attention" if any(value in {"failed", "missing", "attention"} for value in provenance_values) else "verified" if any(value in {"verified", "present", "passed"} for value in provenance_values) else "unknown"
+    provenance = state("Provenance", provenance_status, f"SBOM: {provenance_values[0]}; build provenance: {provenance_values[1]}; signature: {provenance_values[2]}.", [supply.get(name, {}).get("evidence_ref") for name in ("sbom", "provenance", "signature")])
+
+    dependency_paths = [item["path"] for item in files if item["path"].casefold().endswith(("package.json", "package-lock.json", "pnpm-lock.yaml", "uv.lock", "requirements.txt"))]
+    return {
+        "domains": [quality, security, recoverability, operability, provenance], "security_delta": delta,
+        "dependency_review": dependency, "dependency_paths": dependency_paths,
+        "verified_domains": sum(item["status"] == "verified" for item in (quality, security, recoverability, operability, provenance)),
+        "attention_domains": sum(item["status"] == "attention" for item in (quality, security, recoverability, operability, provenance)),
+    }
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", required=True)
@@ -168,6 +288,16 @@ def main(argv=None):
     commits, entries = parse_commits(repo, base_sha, target_sha, args.audience, issue_map)
     files = parse_files(repo, base_sha, target_sha)
     risks = risk_flags(commits, files)
+    collaboration = collaboration_summary(commits)
+    matrix = evidence_matrix(evidence, files)
+    introduced = matrix["security_delta"]["introduced"]
+    new_severe = introduced["critical"] + introduced["high"]
+    if new_severe:
+        risks.append({"kind": "new-security-exposure", "severity": "high", "reason": f"Supplied security scans report {new_severe} new critical/high findings.", "evidence_refs": [item.get("evidence_ref") for item in evidence.get("security_scans", []) if item.get("evidence_ref")]})
+    if evidence.get("dependency_review", {}).get("vulnerable_added", 0):
+        risks.append({"kind": "vulnerable-dependency-added", "severity": "high", "reason": "Dependency review reports newly introduced vulnerable dependencies.", "evidence_refs": [evidence["dependency_review"].get("evidence_ref")] if evidence["dependency_review"].get("evidence_ref") else []})
+    if any(item["status"] == "failed" for item in evidence["tests"]):
+        risks.append({"kind": "failed-verification", "severity": "high", "reason": "At least one supplied verification check failed.", "evidence_refs": [item.get("evidence_ref") for item in evidence["tests"] if item["status"] == "failed" and item.get("evidence_ref")]})
     target_tag = git(repo, "describe", "--tags", "--exact-match", target_sha, allow_failure=True) or None
     gaps = []
     if not evidence["tests"] or not any(item["status"] == "passed" and item.get("evidence_ref") for item in evidence["tests"]):
@@ -176,6 +306,15 @@ def main(argv=None):
         gaps.append("Deployment status is unknown.")
     if evidence.get("rollback", {}).get("status") in {None, "unknown"}:
         gaps.append("Rollback evidence was not supplied.")
+    if not evidence.get("security_scans"):
+        gaps.append("No security scan evidence was supplied; new exposure is unknown.")
+    if matrix["dependency_paths"] and evidence.get("dependency_review", {}).get("status") == "unknown":
+        gaps.append("Dependency files changed without supplied dependency-review evidence.")
+    if evidence.get("observability", {}).get("status") == "unknown":
+        gaps.append("Observability and alert readiness were not supplied.")
+    supply = evidence.get("supply_chain", {})
+    if not any(supply.get(name, {}).get("status") in {"verified", "present", "passed"} for name in ("sbom", "provenance", "signature")):
+        gaps.append("No SBOM, artifact signature, or build-provenance evidence was supplied.")
     if any(item["category"] == "Breaking" for item in commits):
         gaps.append("Breaking-change markers require verified previous behavior, new behavior, and migration action.")
     unverified_issues = sorted({value for item in commits for value in item["issue_refs"] if value not in issue_map})
@@ -184,11 +323,12 @@ def main(argv=None):
     additions = sum(item["additions"] or 0 for item in files)
     deletions = sum(item["deletions"] or 0 for item in files)
     artifact = {
-        "schema_version": "1.0", "readiness": "draft",
+        "schema_version": "1.1", "readiness": "draft",
         "source": {"repository": repo.name, "base_ref": args.base, "target_ref": args.target, "base_sha": base_sha, "target_sha": target_sha, "target_tag": target_tag, "dirty_entries": len(git(repo, "status", "--porcelain").splitlines()), "collected_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")},
         "audience": args.audience,
-        "summary": {"commits": len(commits), "changed_files": len(files), "additions": additions, "deletions": deletions, "included_entries": sum(item["included"] for item in entries), "breaking_changes": sum(item["category"] == "Breaking" for item in entries), "risk_flags": len(risks), "evidence_gaps": len(gaps)},
+        "summary": {"commits": len(commits), "contributors": collaboration["contributor_count"], "changed_files": len(files), "additions": additions, "deletions": deletions, "included_entries": sum(item["included"] for item in entries), "breaking_changes": sum(item["category"] == "Breaking" for item in entries), "risk_flags": len(risks), "evidence_gaps": len(gaps), "verified_domains": matrix["verified_domains"], "attention_domains": matrix["attention_domains"], "new_critical_high": new_severe},
         "entries": entries, "commits": commits, "files": files, "risk_flags": risks,
+        "collaboration": collaboration, "confidence": matrix,
         "evidence": evidence, "evidence_gaps": gaps,
     }
     Path(args.out).write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")

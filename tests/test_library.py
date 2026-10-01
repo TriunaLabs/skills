@@ -259,10 +259,12 @@ class LibraryTests(unittest.TestCase):
             run_git('add', 'README.md')
             run_git('commit', '-m', 'chore: initial fixture')
             base = run_git('rev-parse', 'HEAD')
+            run_git('config', 'user.name', 'Developer One')
             (repo / 'openapi').mkdir()
             (repo / 'openapi/auth.yaml').write_text('expires_at: string\n')
             run_git('add', 'openapi/auth.yaml')
             run_git('commit', '-m', 'feat(auth): return absolute session expiry (#142)')
+            run_git('config', 'user.name', 'Developer Two')
             (repo / 'openapi/auth.yaml').write_text('session:\n  expires_at: string\n')
             run_git('add', 'openapi/auth.yaml')
             run_git('commit', '-m', 'feat(auth)!: remove expires_in from response', '-m', 'BREAKING CHANGE: clients must read session.expires_at.')
@@ -271,8 +273,12 @@ class LibraryTests(unittest.TestCase):
             evidence.write_text(json.dumps({
                 'issues': [{'id': '142', 'title': 'Expiry contract', 'url': 'https://tracker.example/142', 'state': 'closed'}],
                 'tests': [{'name': 'contract suite', 'status': 'passed', 'evidence_ref': 'run:1'}],
+                'security_scans': [{'provider': 'Snyk', 'scope': 'dependencies', 'status': 'passed', 'introduced': {'critical': 0, 'high': 0, 'medium': 0, 'low': 0}, 'resolved': {'critical': 0, 'high': 1, 'medium': 0, 'low': 0}, 'remaining': {'critical': 0, 'high': 0, 'medium': 1, 'low': 0}, 'evidence_ref': 'snyk:1'}],
+                'supply_chain': {'sbom': {'status': 'present', 'evidence_ref': 'artifact:sbom'}, 'provenance': {'status': 'verified', 'evidence_ref': 'attestation:1'}, 'signature': {'status': 'unknown'}},
                 'deployment': {'status': 'not_deployed'},
-                'rollback': {'status': 'documented', 'evidence_ref': 'docs:rollback'},
+                'rollback': {'status': 'tested', 'evidence_ref': 'run:rollback'},
+                'observability': {'status': 'verified', 'evidence_ref': 'dashboard:1'},
+                'rollout': {'status': 'ready', 'evidence_ref': 'plan:1'},
                 'known_limitations': ['Older clients need an upgrade.'],
             }))
             artifact = root / 'release.json'
@@ -287,6 +293,10 @@ class LibraryTests(unittest.TestCase):
             self.assertEqual({entry['category'] for entry in data['entries']}, {'Added', 'Breaking'})
             self.assertIn('142', data['commits'][0]['verified_issue_refs'])
             self.assertTrue(any(item['kind'] == 'breaking-change' for item in data['risk_flags']))
+            self.assertEqual(data['schema_version'], '1.1')
+            self.assertEqual(data['summary']['contributors'], 2)
+            self.assertEqual(len(data['confidence']['domains']), 5)
+            self.assertEqual(data['confidence']['security_delta']['resolved']['high'], 1)
             self.assertEqual(data['readiness'], 'draft')
 
             html_report, markdown_report = root / 'release.html', root / 'release.md'
@@ -298,11 +308,16 @@ class LibraryTests(unittest.TestCase):
             html_text = html_report.read_text(encoding='utf-8')
             self.assertIn('<!doctype html>', html_text)
             self.assertIn('Release entries', html_text)
+            self.assertIn('Release evidence matrix', html_text)
+            self.assertIn('EXPORT PDF', html_text)
+            self.assertIn('window.print()', html_text)
             self.assertNotIn('/*__RELEASE_', html_text)
             self.assertNotIn('<script src=', html_text)
             markdown_text = markdown_report.read_text(encoding='utf-8')
             self.assertIn('**Draft**', markdown_text)
             self.assertIn('## Breaking', markdown_text)
+            self.assertIn('## Collaboration and scope', markdown_text)
+            self.assertIn('## Release evidence matrix', markdown_text)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,22 +1,22 @@
 {
   "title": "Build a release brief",
   "category": "Documentation",
-  "tags": ["releases", "git", "provenance", "verification", "html-report"],
-  "version": "0.2.0",
+  "tags": ["releases", "git", "provenance", "verification", "security", "supply-chain", "pdf"],
+  "version": "0.3.0",
   "license": "MIT",
   "author": "TriunaLabs",
-  "origin": "Original TriunaLabs workflow substantially upgraded with deterministic Git evidence collection, report rendering, fixtures, and tests.",
+  "origin": "Original TriunaLabs workflow upgraded with deterministic Git evidence collection, research-backed release confidence signals, PDF-ready infographic rendering, fixtures, and tests.",
   "preview": {
     "src": "assets/catalog-preview.png",
-    "alt": "Interactive release brief showing immutable Git range metrics, categorized changes, release risks, and evidence gaps."
+    "alt": "Release evidence infographic showing five confidence domains, contributor context, security deltas, supply-chain evidence, and release risks."
   },
   "requirements": [
-    "Python 3.10+, Git, and read access to a local repository. Issue, test, deployment, rollback, and limitation evidence is optional but must be supplied explicitly when used. HTML reports run in a modern browser with JavaScript enabled."
+    "Python 3.10+, Git, and read access to a local repository. Quality, security, supply-chain, deployment, rollback, observability, and limitation evidence is optional but must be supplied explicitly when used. HTML and print-to-PDF reports run in a modern browser with JavaScript enabled."
   ],
   "compatibility": {"codex":"format-compatible","claude-code":"format-compatible","other-agents":"untested"},
   "examples": [
-    "Build an interactive release brief for v1.2.0..v1.3.0 for application users and show every evidence gap.",
-    "Create developer-facing Markdown release notes from these two commit SHAs and attach the supplied test and deployment evidence.",
-    "Review this release range for breaking changes, migrations, configuration changes, and missing rollback evidence without publishing anything."
+    "Build an infographic release brief for v1.2.0..v1.3.0 with contributor context, Snyk and CodeQL deltas, test evidence, and a PDF-ready view.",
+    "Create developer-facing Markdown release notes from these two commit SHAs and attach dependency review, SBOM, provenance, test, and deployment evidence.",
+    "Review this release range for breaking changes, new supply-chain exposure, missing observability, and rollback readiness without publishing anything."
   ]
 }

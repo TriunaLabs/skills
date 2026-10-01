@@ -17,6 +17,22 @@
 - Tests: {{verified result or unknown}}
 - Deployment: {{verified result or unknown}}
 - Rollback: {{evidence reference or unknown}}
+- Observability: {{dashboards, alerts, or unknown}}
+- Rollout: {{strategy and evidence or unknown}}
+
+## Security and supply chain
+
+- New / resolved / remaining findings: {{scanner-specific delta or unknown}}
+- Dependency review: {{added, updated, removed, vulnerable added, license changes}}
+- SBOM: {{format and evidence or unknown}}
+- Build provenance and signature: {{evidence or unknown}}
+
+## Collaboration and scope
+
+- Contributors and commit span: {{coordination context}}
+- Change composition: {{features, fixes, security, breaking, internal}}
+
+Commit and contributor counts describe provenance and coordination, not individual productivity.
 
 ## Known limitations and evidence gaps
 

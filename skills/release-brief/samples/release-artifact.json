@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "readiness": "draft",
   "source": {
     "repository": "triuna-auth",
@@ -12,29 +12,53 @@
     "collected_at": "2026-09-30T23:00:00Z"
   },
   "audience": "users",
-  "summary": {"commits":3,"changed_files":5,"additions":126,"deletions":41,"included_entries":3,"breaking_changes":1,"risk_flags":3,"evidence_gaps":2},
+  "summary": {"commits":3,"contributors":3,"changed_files":6,"additions":138,"deletions":44,"included_entries":3,"breaking_changes":1,"risk_flags":5,"evidence_gaps":2,"verified_domains":3,"attention_domains":2,"new_critical_high":1},
   "entries": [
     {"id":"222222222222","title":"return absolute session expiry","category":"Added","audiences":["users","developers","operators","executives"],"included":true,"evidence_refs":["commit:2222222222222222222222222222222222222222","https://tracker.example/issues/142"],"paths":["src/auth/session.ts","openapi/auth.yaml"],"uncertainty":null},
     {"id":"333333333333","title":"reject stale refresh tokens","category":"Security","audiences":["users","developers","operators","executives"],"included":true,"evidence_refs":["commit:3333333333333333333333333333333333333333","https://tracker.example/issues/155"],"paths":["src/auth/refresh.ts","tests/auth/refresh.test.ts"],"uncertainty":null},
     {"id":"444444444444","title":"remove expires_in from the authentication response","category":"Breaking","audiences":["users","developers","operators","executives"],"included":true,"evidence_refs":["commit:4444444444444444444444444444444444444444"],"paths":["openapi/auth.yaml"],"uncertainty":null}
   ],
   "commits": [
-    {"sha":"2222222222222222222222222222222222222222","short_sha":"22222222","parents":["1111111111111111111111111111111111111111"],"author":"Release Fixture","authored_at":"2026-09-27T10:00:00Z","subject":"feat(auth): return absolute session expiry (#142)","body":"","paths":["src/auth/session.ts","openapi/auth.yaml"],"category":"Added","issue_refs":["142"],"verified_issue_refs":["142"],"audiences":["users","developers","operators","executives"],"included":true},
-    {"sha":"3333333333333333333333333333333333333333","short_sha":"33333333","parents":["2222222222222222222222222222222222222222"],"author":"Release Fixture","authored_at":"2026-09-28T10:00:00Z","subject":"fix(security): reject stale refresh tokens (#155)","body":"","paths":["src/auth/refresh.ts","tests/auth/refresh.test.ts"],"category":"Security","issue_refs":["155"],"verified_issue_refs":["155"],"audiences":["users","developers","operators","executives"],"included":true},
-    {"sha":"4444444444444444444444444444444444444444","short_sha":"44444444","parents":["3333333333333333333333333333333333333333"],"author":"Release Fixture","authored_at":"2026-09-29T10:00:00Z","subject":"feat(auth)!: remove expires_in from response","body":"BREAKING CHANGE: clients must read session.expires_at.","paths":["openapi/auth.yaml"],"category":"Breaking","issue_refs":[],"verified_issue_refs":[],"audiences":["users","developers","operators","executives"],"included":true}
+    {"sha":"2222222222222222222222222222222222222222","short_sha":"22222222","parents":["1111111111111111111111111111111111111111"],"author":"Maya Chen","authored_at":"2026-09-27T10:00:00Z","subject":"feat(auth): return absolute session expiry (#142)","body":"","paths":["src/auth/session.ts","openapi/auth.yaml"],"category":"Added","issue_refs":["142"],"verified_issue_refs":["142"],"audiences":["users","developers","operators","executives"],"included":true},
+    {"sha":"3333333333333333333333333333333333333333","short_sha":"33333333","parents":["2222222222222222222222222222222222222222"],"author":"Jordan Lee","authored_at":"2026-09-28T14:00:00Z","subject":"fix(security): reject stale refresh tokens (#155)","body":"","paths":["src/auth/refresh.ts","tests/auth/refresh.test.ts"],"category":"Security","issue_refs":["155"],"verified_issue_refs":["155"],"audiences":["users","developers","operators","executives"],"included":true},
+    {"sha":"4444444444444444444444444444444444444444","short_sha":"44444444","parents":["3333333333333333333333333333333333333333"],"author":"Priya Nair","authored_at":"2026-09-29T18:00:00Z","subject":"feat(auth)!: remove expires_in from response","body":"BREAKING CHANGE: clients must read session.expires_at.","paths":["openapi/auth.yaml"],"category":"Breaking","issue_refs":[],"verified_issue_refs":[],"audiences":["users","developers","operators","executives"],"included":true}
   ],
   "files": [
     {"path":"openapi/auth.yaml","old_path":null,"status":"M","additions":21,"deletions":13},
     {"path":"src/auth/session.ts","old_path":null,"status":"M","additions":42,"deletions":8},
     {"path":"src/auth/refresh.ts","old_path":null,"status":"M","additions":31,"deletions":12},
     {"path":"tests/auth/refresh.test.ts","old_path":null,"status":"M","additions":28,"deletions":8},
-    {"path":"config/auth-policy.json","old_path":null,"status":"M","additions":4,"deletions":0}
+    {"path":"config/auth-policy.json","old_path":null,"status":"M","additions":4,"deletions":0},
+    {"path":"package-lock.json","old_path":null,"status":"M","additions":12,"deletions":3}
   ],
+  "collaboration": {
+    "contributors": [
+      {"name":"Jordan Lee","commits":1,"commit_share_percent":33.3,"files_touched":2,"categories":["Security"],"first_at":"2026-09-28T14:00:00Z","last_at":"2026-09-28T14:00:00Z"},
+      {"name":"Maya Chen","commits":1,"commit_share_percent":33.3,"files_touched":2,"categories":["Added"],"first_at":"2026-09-27T10:00:00Z","last_at":"2026-09-27T10:00:00Z"},
+      {"name":"Priya Nair","commits":1,"commit_share_percent":33.3,"files_touched":1,"categories":["Breaking"],"first_at":"2026-09-29T18:00:00Z","last_at":"2026-09-29T18:00:00Z"}
+    ],
+    "contributor_count":3,"commit_span_hours":56.0,"largest_commit_share_percent":33.3,
+    "interpretation":"Commit and contributor counts describe release coordination and provenance, not individual productivity."
+  },
   "risk_flags": [
     {"kind":"breaking-change","severity":"high","reason":"Commit metadata contains a breaking-change marker.","evidence_refs":["commit:4444444444444444444444444444444444444444"]},
     {"kind":"security-or-auth","severity":"high","reason":"The range touches authentication or security evidence.","evidence_refs":["commit:3333333333333333333333333333333333333333"]},
-    {"kind":"configuration-change","severity":"medium","reason":"The range changes runtime or deployment configuration.","evidence_refs":["path:config/auth-policy.json"]}
+    {"kind":"configuration-change","severity":"medium","reason":"The range changes runtime or deployment configuration.","evidence_refs":["path:config/auth-policy.json"]},
+    {"kind":"new-security-exposure","severity":"high","reason":"Supplied security scans report 1 new critical/high finding.","evidence_refs":["snyk:project/triuna-auth/scan-993"]},
+    {"kind":"vulnerable-dependency-added","severity":"high","reason":"Dependency review reports a newly introduced vulnerable dependency.","evidence_refs":["github:dependency-review/run-774"]}
   ],
+  "confidence": {
+    "domains": [
+      {"label":"Quality","status":"attention","detail":"2 of 3 supplied test checks passed; the mobile compatibility matrix is partial.","evidence_refs":["run:8841","run:8846","run:8850"]},
+      {"label":"Security","status":"attention","detail":"1 new high finding across 2 supplied scans.","evidence_refs":["snyk:project/triuna-auth/scan-993","github:codeql/run-612"]},
+      {"label":"Recoverability","status":"verified","detail":"Rollback rehearsal passed and evidence is linked.","evidence_refs":["run:8850"]},
+      {"label":"Operability","status":"verified","detail":"Observability evidence and a staged rollout plan are linked.","evidence_refs":["dashboard:auth-release-v13","plan:auth-v13-canary"]},
+      {"label":"Provenance","status":"verified","detail":"CycloneDX SBOM, SLSA provenance, and Sigstore signature are linked.","evidence_refs":["artifact:triuna-auth-v1.3.0.cdx.json","attestation:build-441","rekor:11933021"]}
+    ],
+    "security_delta": {"introduced":{"critical":0,"high":1,"medium":2,"low":0},"resolved":{"critical":0,"high":2,"medium":2,"low":0},"remaining":{"critical":0,"high":1,"medium":4,"low":4}},
+    "dependency_review":{"status":"attention","added":2,"updated":3,"removed":1,"vulnerable_added":1,"license_changes":0,"evidence_ref":"github:dependency-review/run-774"},
+    "dependency_paths":["package-lock.json"],"verified_domains":3,"attention_domains":2
+  },
   "evidence": {
     "issues": [
       {"id":"142","title":"Expose absolute session expiry","url":"https://tracker.example/issues/142","state":"closed"},
@@ -42,10 +66,24 @@
     ],
     "tests": [
       {"name":"API contract suite","status":"passed","evidence_ref":"run:8841"},
-      {"name":"Mobile compatibility matrix","status":"partial","evidence_ref":"run:8846"}
+      {"name":"Mobile compatibility matrix","status":"partial","evidence_ref":"run:8846"},
+      {"name":"Rollback rehearsal","status":"passed","evidence_ref":"run:8850"}
     ],
+    "security_scans": [
+      {"provider":"Snyk","scope":"open-source dependencies","status":"passed","introduced":{"critical":0,"high":1,"medium":2,"low":0},"resolved":{"critical":0,"high":2,"medium":1,"low":0},"remaining":{"critical":0,"high":1,"medium":4,"low":3},"evidence_ref":"snyk:project/triuna-auth/scan-993"},
+      {"provider":"CodeQL","scope":"source code","status":"passed","introduced":{"critical":0,"high":0,"medium":0,"low":0},"resolved":{"critical":0,"high":0,"medium":1,"low":0},"remaining":{"critical":0,"high":0,"medium":0,"low":1},"evidence_ref":"github:codeql/run-612"}
+    ],
+    "dependency_review":{"status":"attention","added":2,"updated":3,"removed":1,"vulnerable_added":1,"license_changes":0,"evidence_ref":"github:dependency-review/run-774"},
+    "supply_chain": {
+      "sbom":{"status":"present","format":"CycloneDX 1.6","evidence_ref":"artifact:triuna-auth-v1.3.0.cdx.json"},
+      "provenance":{"status":"verified","level":"SLSA Build L2","evidence_ref":"attestation:build-441"},
+      "signature":{"status":"verified","method":"Sigstore","evidence_ref":"rekor:11933021"}
+    },
     "deployment": {"status":"not_deployed","environment":null,"evidence_ref":null},
-    "rollback": {"status":"documented","evidence_ref":"docs:rollback-auth-v2"},
+    "rollback": {"status":"tested","evidence_ref":"run:8850"},
+    "observability":{"status":"verified","summary":"Authentication SLO, refresh-token failures, and error-rate alerts are linked.","evidence_ref":"dashboard:auth-release-v13"},
+    "rollout":{"status":"ready","strategy":"10% canary, then 50%, then full rollout with a 30-minute hold.","evidence_ref":"plan:auth-v13-canary"},
+    "delivery_metrics":{"window":"previous 90 days","change_lead_time_hours":18,"deployment_frequency_per_week":4.2,"change_fail_rate_percent":7.5,"failed_deployment_recovery_hours":0.7,"deployment_rework_rate_percent":5.0,"evidence_ref":"dora:auth-service-q3"},
     "known_limitations": ["Mobile clients older than 4.8 do not read the absolute expiry field."]
   },
   "evidence_gaps": [

@@ -10,7 +10,7 @@ A public library of focused, portable workflows for Claude Code, Codex, and othe
 | --- | --- | --- |
 | [Decision record](skills/decision-record/SKILL.md) | Compare options and capture a revisitable decision | Project context |
 | [Reproduce a bug](skills/reproduce-bug/SKILL.md) | Reduce a failure to a repeatable regression check | Project runtime / tests |
-| [Release brief](skills/release-brief/SKILL.md) | Build evidence-backed Git release briefs with interactive reports | Python 3.10+; Git |
+| [Release brief](skills/release-brief/SKILL.md) | Build release-confidence briefs with security, provenance, and PDF-ready reports | Python 3.10+; Git |
 | [Profile a CSV](skills/csv-profile/SKILL.md) | Report structural and missing-value issues | Python 3.10+ |
 | [Route an agent message](skills/route-agent-message/SKILL.md) | Route a change or question to relevant active sessions with delivery receipts | Python 3.10+; session registry and messaging transport |
 

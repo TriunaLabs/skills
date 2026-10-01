@@ -5,9 +5,23 @@
   ],
   "tests": [
     {"name":"API contract suite","status":"passed","evidence_ref":"run:8841"},
-    {"name":"Mobile compatibility matrix","status":"partial","evidence_ref":"run:8846"}
+    {"name":"Mobile compatibility matrix","status":"partial","evidence_ref":"run:8846"},
+    {"name":"Rollback rehearsal","status":"passed","evidence_ref":"run:8850"}
   ],
+  "security_scans": [
+    {"provider":"Snyk","scope":"open-source dependencies","status":"passed","introduced":{"critical":0,"high":1,"medium":2,"low":0},"resolved":{"critical":0,"high":2,"medium":1,"low":0},"remaining":{"critical":0,"high":1,"medium":4,"low":3},"evidence_ref":"snyk:project/triuna-auth/scan-993"},
+    {"provider":"CodeQL","scope":"source code","status":"passed","introduced":{"critical":0,"high":0,"medium":0,"low":0},"resolved":{"critical":0,"high":0,"medium":1,"low":0},"remaining":{"critical":0,"high":0,"medium":0,"low":1},"evidence_ref":"github:codeql/run-612"}
+  ],
+  "dependency_review": {"status":"attention","added":2,"updated":3,"removed":1,"vulnerable_added":1,"license_changes":0,"evidence_ref":"github:dependency-review/run-774"},
+  "supply_chain": {
+    "sbom":{"status":"present","format":"CycloneDX 1.6","evidence_ref":"artifact:triuna-auth-v1.3.0.cdx.json"},
+    "provenance":{"status":"verified","level":"SLSA Build L2","evidence_ref":"attestation:build-441"},
+    "signature":{"status":"verified","method":"Sigstore","evidence_ref":"rekor:11933021"}
+  },
   "deployment": {"status":"not_deployed","environment":null,"evidence_ref":null},
-  "rollback": {"status":"documented","evidence_ref":"docs:rollback-auth-v2"},
+  "rollback": {"status":"tested","evidence_ref":"run:8850"},
+  "observability": {"status":"verified","summary":"Authentication SLO, refresh-token failures, and error-rate alerts are linked.","evidence_ref":"dashboard:auth-release-v13"},
+  "rollout": {"status":"ready","strategy":"10% canary, then 50%, then full rollout with a 30-minute hold.","evidence_ref":"plan:auth-v13-canary"},
+  "delivery_metrics": {"window":"previous 90 days","change_lead_time_hours":18,"deployment_frequency_per_week":4.2,"change_fail_rate_percent":7.5,"failed_deployment_recovery_hours":0.7,"deployment_rework_rate_percent":5.0,"evidence_ref":"dora:auth-service-q3"},
   "known_limitations": ["Mobile clients older than 4.8 do not read the absolute expiry field."]
 }
