@@ -23,6 +23,8 @@ def build():
     for path in (ROOT / 'site').iterdir():
         if path.is_file():
             shutil.copy2(path, out / path.name)
+        elif path.is_dir():
+            shutil.copytree(path, out / path.name, dirs_exist_ok=True)
     (out / '.nojekyll').touch()
     (out / 'catalog.json').write_text(json.dumps(public_records, indent=2), encoding='utf-8')
     for record in public_records:

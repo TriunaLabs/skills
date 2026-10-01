@@ -36,6 +36,7 @@ class LibraryTests(unittest.TestCase):
         self.assertEqual({item['name'] for item in catalog}, {'csv-profile', 'release-brief', 'route-agent-message'})
         self.assertFalse((ROOT / 'dist/skills/decision-record').exists())
         self.assertFalse((ROOT / 'dist/skills/reproduce-bug').exists())
+        self.assertTrue((ROOT / 'dist/assets/triunalabs-horizontal.svg').is_file())
 
     def test_invalid_metadata_and_resources_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
