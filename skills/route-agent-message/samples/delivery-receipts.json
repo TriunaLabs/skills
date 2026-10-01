@@ -1,0 +1,28 @@
+{
+  "receipts": [
+    {
+      "recipient_id": "web-client",
+      "status": "delivered",
+      "transport": "codex-thread",
+      "attempted_at": "2026-09-30T23:00:00Z",
+      "latency_ms": 38,
+      "detail": "Message accepted by the task transport."
+    },
+    {
+      "recipient_id": "mobile-client",
+      "status": "delivered",
+      "transport": "codex-thread",
+      "attempted_at": "2026-09-30T23:00:01Z",
+      "latency_ms": 41,
+      "detail": "Message accepted by the task transport."
+    },
+    {
+      "recipient_id": "contract-tests",
+      "status": "delivered",
+      "transport": "claude-peer",
+      "attempted_at": "2026-09-30T23:00:02Z",
+      "latency_ms": 52,
+      "detail": "Message accepted by the peer transport."
+    }
+  ]
+}

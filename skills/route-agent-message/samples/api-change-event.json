@@ -1,0 +1,24 @@
+{
+  "id": "evt-auth-response-v2",
+  "source": {
+    "session_id": "api-session",
+    "agent": "codex"
+  },
+  "summary": "The authentication response now returns session.expires_at and no longer returns expires_in.",
+  "repo": "platform",
+  "branch": "feature/auth-v2",
+  "components": [
+    "api:auth"
+  ],
+  "changed_paths": [
+    "packages/api/openapi/auth.yaml"
+  ],
+  "topic": "authentication response contract",
+  "evidence_ref": "commit:abc123",
+  "requested_action": "Review the contract and update affected consumers and contract tests.",
+  "expected_recipients": [
+    "web-client",
+    "mobile-client",
+    "contract-tests"
+  ]
+}

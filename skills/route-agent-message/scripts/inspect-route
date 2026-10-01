@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""Merge transport receipts and render route artifacts as JSON, Markdown, or HTML."""
+import argparse
+import copy
+import html
+import json
+import sys
+from pathlib import Path
+
+STATUSES = {"delivered", "held", "unavailable", "failed"}
+ASSETS = Path(__file__).resolve().parents[1] / "assets"
+
+
+def read_json(path):
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def merge_receipts(route, receipt_path=None):
+    route = copy.deepcopy(route)
+    recipients = route.get("recipients")
+    if not isinstance(recipients, list):
+        raise ValueError("route artifact requires recipients array")
+    by_id = {item.get("session_id"): item for item in recipients}
+    seen = set()
+    if receipt_path:
+        receipts = read_json(receipt_path).get("receipts")
+        if not isinstance(receipts, list):
+            raise ValueError("receipt file requires receipts array")
+        for receipt in receipts:
+            recipient_id = receipt.get("recipient_id")
+            status = receipt.get("status")
+            if recipient_id not in by_id:
+                raise ValueError(f"receipt names unknown recipient: {recipient_id}")
+            if recipient_id in seen:
+                raise ValueError(f"duplicate receipt: {recipient_id}")
+            if status not in STATUSES:
+                raise ValueError(f"unsupported receipt status: {status}")
+            if status == "delivered" and not by_id[recipient_id].get("selected"):
+                raise ValueError(f"held recipient cannot be marked delivered: {recipient_id}")
+            seen.add(recipient_id)
+            by_id[recipient_id]["delivery"] = {key: value for key, value in receipt.items() if key != "recipient_id"}
+    counts = {status: 0 for status in ["pending", "delivered", "held", "unavailable", "failed"]}
+    for item in recipients:
+        status = item.get("delivery", {}).get("status", "pending")
+        counts[status] = counts.get(status, 0) + 1
+    counts["unavailable"] += len(route.get("unavailable", []))
+    selected_count = sum(bool(item.get("selected")) for item in recipients)
+    counts["delivery_success_rate"] = counts["delivered"] / selected_count if selected_count else 0
+    route["delivery_summary"] = counts
+    return route
+
+
+def escape_cell(value):
+    return str(value if value is not None else "—").replace("|", "\\|").replace("\n", " ")
+
+
+def render_markdown(route):
+    event = route.get("event", {})
+    service = route.get("decision_service", {})
+    lines = [
+        "# Agent message route", "", f"**Event:** {event.get('summary', '—')}", "",
+        f"**Evidence:** `{event.get('evidence_ref', '—')}`  ",
+        f"**Requested action:** {event.get('requested_action', '—')}  ",
+        f"**Source:** `{event.get('source', {}).get('session_id', '—')}`  ",
+        f"**Decision provider:** {service.get('provider', route.get('policy', {}).get('provider', '—'))} / {service.get('model') or 'not reported'}",
+        "", "## Routing summary", "",
+        "| Recipient | Selected | Relevance | Delivery | Reason |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for item in route.get("recipients", []):
+        lines.append("| " + " | ".join([
+            escape_cell(item.get("session_id")), "yes" if item.get("selected") else "no",
+            escape_cell(item.get("relevance", {}).get("answer")),
+            escape_cell(item.get("delivery", {}).get("status")),
+            escape_cell(item.get("relevance", {}).get("reason")),
+        ]) + " |")
+    for item in route.get("unavailable", []):
+        lines.append(f"| {escape_cell(item.get('session_id'))} | no | not evaluated | unavailable | {escape_cell(item.get('reason'))} |")
+    selected = [item for item in route.get("recipients", []) if item.get("selected")]
+    if selected:
+        lines.extend(["", "## Messages"])
+        for item in selected:
+            lines.extend(["", f"### {item.get('session_id')}", "", "```text", item.get("message", ""), "```"])
+    if route.get("errors"):
+        lines.extend(["", "## Holds and errors", ""] + [f"- {error}" for error in route["errors"]])
+    if route.get("evaluation"):
+        evaluation = route["evaluation"]
+        lines.extend([
+            "", "## Labeled evaluation", "",
+            f"- Missed recipients: {', '.join(evaluation.get('missed_recipients', [])) or 'none'}",
+            f"- Unnecessary messages: {', '.join(evaluation.get('unnecessary_messages', [])) or 'none'}",
+        ])
+    lines.extend(["", "## Interpretation", "", "A selected recipient remains pending until an authorized transport returns a receipt. Delivered means the transport accepted the message; it does not prove that the recipient read or acted on it."])
+    return "\n".join(lines) + "\n"
+
+
+def render_html(route):
+    template = (ASSETS / "route-report-template.html").read_text(encoding="utf-8")
+    css = (ASSETS / "route-report.css").read_text(encoding="utf-8")
+    script = (ASSETS / "route-report.js").read_text(encoding="utf-8")
+    payload = json.dumps(route, separators=(",", ":")).replace("<", "\\u003c")
+    title = html.escape(str(route.get("event", {}).get("summary", "Agent message route")))
+    return template.replace("/*__ROUTE_CSS__*/", css).replace("/*__ROUTE_JS__*/", script).replace("__ROUTE_DATA__", payload).replace("__ROUTE_TITLE__", title)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("route")
+    parser.add_argument("--receipts")
+    parser.add_argument("--out")
+    parser.add_argument("--format", choices=["json", "markdown", "html"], default="markdown")
+    args = parser.parse_args(argv)
+    route = merge_receipts(read_json(args.route), args.receipts)
+    if args.format == "json":
+        rendered = json.dumps(route, indent=2) + "\n"
+    elif args.format == "html":
+        rendered = render_html(route)
+    else:
+        rendered = render_markdown(route)
+    if args.out:
+        Path(args.out).write_text(rendered, encoding="utf-8")
+        print(args.out)
+    else:
+        print(rendered, end="")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (ValueError, OSError, json.JSONDecodeError) as error:
+        print(str(error), file=sys.stderr)
+        raise SystemExit(2)

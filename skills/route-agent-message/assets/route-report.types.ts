@@ -1,0 +1,4 @@
+export type DeliveryStatus = "pending" | "delivered" | "held" | "unavailable" | "failed";
+export type RelevanceAnswer = "relevant" | "not_relevant" | "uncertain";
+export interface RouteRecipient { session_id:string; selected:boolean; relevance:{answer:RelevanceAnswer;reason:string;signals:Record<string,boolean|string[]>;decision?:Record<string,unknown>}; transport?:{kind:string;target:string}|null; delivery:{status:DeliveryStatus;[key:string]:unknown}; message?:string }
+export interface RouteArtifact { schema_version:"1.0"; generated_at:string; event:Record<string,unknown>; policy:{provider:"laya"|"jev"|"openai-decisions";threshold:number;per_candidate:true}; decision_service:Record<string,unknown>; recipients:RouteRecipient[]; unavailable:Array<Record<string,unknown>>; errors:string[]; summary:Record<string,number>; delivery_summary?:Record<string,number>; evaluation?:{expected_recipients:string[];missed_recipients:string[];unnecessary_messages:string[]} }

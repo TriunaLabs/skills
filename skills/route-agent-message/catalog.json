@@ -1,0 +1,34 @@
+{
+  "title": "Route an agent message",
+  "category": "Engineering",
+  "tags": [
+    "agents",
+    "sessions",
+    "routing",
+    "html-report",
+    "laya",
+    "jev",
+    "decisions-api"
+  ],
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "TriunaLabs",
+  "origin": "Original skill authored for this public library from a user-selected TriunaLabs workflow; contains no exported personal chat content.",
+  "requirements": [
+    "Python 3.10+ for the helper scripts; access to a live-session listing or registry and an authorized messaging transport. Ambiguous routing defaults to a local Laya decision service; Jev and OpenAI Decisions require separately configured adapters and credentials."
+  ],
+  "compatibility": {
+    "codex": "format-compatible",
+    "claude-code": "format-compatible",
+    "other-agents": "untested"
+  },
+  "examples": [
+    "Route this auth response contract change to every active client and contract-test session that needs to react.",
+    "Who owns the mobile client, and which active sessions should receive this evidence?",
+    "Use Jev instead of the default Laya service to evaluate ambiguous recipients, but hold low-confidence decisions for review."
+  ],
+  "preview": {
+    "src": "assets/catalog-preview.png",
+    "alt": "Agent-message routing report showing five active candidates, three selected routes, delivery receipts, and the Laya decision stage."
+  }
+}

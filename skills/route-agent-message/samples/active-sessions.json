@@ -1,0 +1,76 @@
+{
+  "sessions": [
+    {
+      "session_id": "api-session",
+      "active": true,
+      "agent": "codex",
+      "repo": "platform",
+      "task": "Change authentication API",
+      "components": ["api:auth"],
+      "owned_paths": ["packages/api/**"],
+      "depends_on": [],
+      "topics": ["authentication"],
+      "transport": {"kind": "codex-thread", "target": "api-session"}
+    },
+    {
+      "session_id": "web-client",
+      "active": true,
+      "agent": "codex",
+      "repo": "web",
+      "task": "Maintain web authentication",
+      "components": ["client:web"],
+      "owned_paths": ["apps/web/**"],
+      "depends_on": ["api:auth"],
+      "topics": ["authentication", "web"],
+      "transport": {"kind": "codex-thread", "target": "web-client"}
+    },
+    {
+      "session_id": "mobile-client",
+      "active": true,
+      "agent": "codex",
+      "repo": "mobile",
+      "task": "Maintain mobile authentication",
+      "components": ["client:mobile"],
+      "owned_paths": ["apps/mobile/**"],
+      "depends_on": ["api:auth"],
+      "topics": ["authentication", "mobile"],
+      "transport": {"kind": "codex-thread", "target": "mobile-client"}
+    },
+    {
+      "session_id": "contract-tests",
+      "active": true,
+      "agent": "claude-code",
+      "repo": "platform-tests",
+      "task": "Maintain API contract tests",
+      "components": ["test:contracts"],
+      "owned_paths": ["tests/contracts/**"],
+      "depends_on": ["api:auth"],
+      "topics": ["contracts", "authentication"],
+      "transport": {"kind": "claude-peer", "target": "contract-tests"}
+    },
+    {
+      "session_id": "billing-worker",
+      "active": true,
+      "agent": "codex",
+      "repo": "billing",
+      "task": "Reconcile invoices",
+      "components": ["worker:billing"],
+      "owned_paths": ["workers/billing/**"],
+      "depends_on": ["api:billing"],
+      "topics": ["billing", "invoices"],
+      "transport": {"kind": "codex-thread", "target": "billing-worker"}
+    },
+    {
+      "session_id": "docs-site",
+      "active": true,
+      "agent": "codex",
+      "repo": "docs",
+      "task": "Update marketing pages",
+      "components": ["site:marketing"],
+      "owned_paths": ["site/**"],
+      "depends_on": [],
+      "topics": ["marketing", "content"],
+      "transport": {"kind": "codex-thread", "target": "docs-site"}
+    }
+  ]
+}

@@ -1,0 +1,308 @@
+#!/usr/bin/env python3
+"""Build a multi-recipient route plan from an event and active-session registry."""
+import argparse
+import copy
+import fnmatch
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+DEFAULTS = {
+    "provider": "laya",
+    "threshold": 0.80,
+    "decision_service": {
+        "endpoint": "http://127.0.0.1:8791/v1/route-decisions",
+        "api_key_env": None,
+        "timeout_seconds": 20,
+    },
+}
+ANSWERS = {"relevant", "not_relevant", "uncertain"}
+
+
+def read_json(path):
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def merge(base, update):
+    result = copy.deepcopy(base)
+    for key, value in update.items():
+        if isinstance(value, dict) and isinstance(result.get(key), dict):
+            result[key] = merge(result[key], value)
+        else:
+            result[key] = value
+    return result
+
+
+def strings(value, field):
+    if value is None:
+        return []
+    if not isinstance(value, list) or not all(isinstance(item, str) and item.strip() for item in value):
+        raise ValueError(f"{field} must be an array of nonempty strings")
+    return value
+
+
+def validate_event(event):
+    source = event.get("source")
+    if not isinstance(source, dict) or not isinstance(source.get("session_id"), str) or not source["session_id"].strip():
+        raise ValueError("event.source.session_id is required")
+    for field in ("summary", "repo", "evidence_ref", "requested_action"):
+        if not isinstance(event.get(field), str) or not event[field].strip():
+            raise ValueError(f"event.{field} is required")
+    paths = strings(event.get("changed_paths"), "event.changed_paths")
+    if not paths and (not isinstance(event.get("topic"), str) or not event["topic"].strip()):
+        raise ValueError("event requires changed_paths or topic")
+    strings(event.get("components"), "event.components")
+
+
+def validate_registry(registry):
+    sessions = registry.get("sessions")
+    if not isinstance(sessions, list):
+        raise ValueError("registry.sessions must be an array")
+    seen = set()
+    for session in sessions:
+        if not isinstance(session, dict) or not isinstance(session.get("session_id"), str) or not session["session_id"].strip():
+            raise ValueError("each registry session requires session_id")
+        if session["session_id"] in seen:
+            raise ValueError(f"duplicate session_id: {session['session_id']}")
+        seen.add(session["session_id"])
+        if not isinstance(session.get("active"), bool):
+            raise ValueError(f"{session['session_id']}.active must be Boolean")
+        for field in ("components", "owned_paths", "depends_on", "topics"):
+            strings(session.get(field), f"{session['session_id']}.{field}")
+    return sessions
+
+
+def lower_set(values):
+    return {value.casefold() for value in values}
+
+
+def candidate_signals(event, session):
+    changed = strings(event.get("changed_paths"), "event.changed_paths")
+    owned = strings(session.get("owned_paths"), "session.owned_paths")
+    path_matches = sorted({path for path in changed for pattern in owned if fnmatch.fnmatch(path.casefold(), pattern.casefold())})
+    event_components = lower_set(strings(event.get("components"), "event.components"))
+    owned_components = lower_set(strings(session.get("components"), "session.components"))
+    dependencies = lower_set(strings(session.get("depends_on"), "session.depends_on"))
+    component_matches = sorted(event_components & owned_components)
+    dependency_matches = sorted(event_components & dependencies)
+    topic = str(event.get("topic", "")).casefold()
+    topic_matches = sorted({item for item in strings(session.get("topics"), "session.topics") if item.casefold() in topic})
+    return {
+        "same_repo": str(session.get("repo", "")).casefold() == event["repo"].casefold(),
+        "path_matches": path_matches,
+        "component_matches": component_matches,
+        "dependency_matches": dependency_matches,
+        "topic_matches": topic_matches,
+    }
+
+
+def deterministic_outcome(event, session, signals):
+    explicit = lower_set(strings(event.get("recipients"), "event.recipients"))
+    if session["session_id"].casefold() in explicit:
+        return "relevant", "explicit recipient"
+    if signals["path_matches"]:
+        return "relevant", f"owns changed path {signals['path_matches'][0]}"
+    if signals["component_matches"]:
+        return "relevant", f"owns component {signals['component_matches'][0]}"
+    if signals["dependency_matches"]:
+        return "relevant", f"depends on component {signals['dependency_matches'][0]}"
+    if not signals["same_repo"] and not signals["topic_matches"]:
+        return "not_relevant", "no repository, ownership, dependency, or topic relationship"
+    return None, "ambiguous relationship"
+
+
+def load_fixture(path):
+    if not path:
+        return None
+    data = read_json(path)
+    decisions = data.get("decisions", data)
+    if isinstance(decisions, list):
+        return {item["candidate_id"]: item for item in decisions}
+    if isinstance(decisions, dict):
+        return decisions
+    raise ValueError("decision fixture must contain a decisions array or object")
+
+
+def call_service(config, event, ambiguous):
+    endpoint = os.environ.get("ROUTE_AGENT_DECISION_URL") or config["decision_service"].get("endpoint")
+    if not endpoint:
+        raise RuntimeError("decision service endpoint is not configured")
+    payload = {
+        "schema_version": "1.0",
+        "provider": config["provider"],
+        "question": {
+            "type": "choice",
+            "instructions": "Decide separately whether each candidate session needs this event. Use uncertain when the visible evidence is insufficient.",
+            "answers": ["relevant", "not_relevant", "uncertain"],
+        },
+        "event": event,
+        "candidates": [{"candidate": item["session"], "signals": item["signals"]} for item in ambiguous],
+    }
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    env_name = config["decision_service"].get("api_key_env")
+    if env_name:
+        secret = os.environ.get(env_name)
+        if not secret:
+            raise RuntimeError(f"configured API key environment variable is missing: {env_name}")
+        headers["Authorization"] = f"Bearer {secret}"
+    request = urllib.request.Request(endpoint, data=json.dumps(payload).encode("utf-8"), headers=headers, method="POST")
+    started = time.perf_counter()
+    try:
+        with urllib.request.urlopen(request, timeout=float(config["decision_service"].get("timeout_seconds", 20))) as response:
+            data = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+        raise RuntimeError(f"decision service failed: {error}") from error
+    elapsed = round((time.perf_counter() - started) * 1000, 3)
+    decisions = data.get("decisions")
+    if not isinstance(decisions, list):
+        raise RuntimeError("decision service response requires decisions array")
+    return {item["candidate_id"]: item for item in decisions}, {
+        "provider": data.get("provider", config["provider"]),
+        "model": data.get("model"),
+        "version": data.get("version"),
+        "batch_latency_ms": elapsed,
+    }
+
+
+def make_message(event, session, reason):
+    task = str(session.get("task", "")).strip()
+    why = reason + (f"; current task: {task}" if task else "")
+    return "\n".join([
+        f"Change: {event['summary'].strip()}",
+        f"Evidence: {event['evidence_ref'].strip()}",
+        f"Action: {event['requested_action'].strip()}",
+        f"Why you: {why}",
+        f"Source: {event['source']['session_id']}",
+    ])
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("event")
+    parser.add_argument("registry")
+    parser.add_argument("output")
+    parser.add_argument("--config")
+    parser.add_argument("--provider", choices=["laya", "jev", "openai-decisions"])
+    parser.add_argument("--decisions", help="Recorded decision response for offline replay or testing")
+    parser.add_argument("--offline", action="store_true", help="Hold ambiguous candidates instead of calling a service")
+    args = parser.parse_args(argv)
+    event = read_json(args.event)
+    registry = read_json(args.registry)
+    validate_event(event)
+    sessions = validate_registry(registry)
+    config = merge(DEFAULTS, read_json(args.config) if args.config else {})
+    if args.provider:
+        config["provider"] = args.provider
+    if config.get("provider") not in {"laya", "jev", "openai-decisions"}:
+        raise ValueError("provider must be laya, jev, or openai-decisions")
+    if not isinstance(config.get("threshold"), (int, float)) or not 0.5 <= config["threshold"] <= 1:
+        raise ValueError("threshold must be between 0.5 and 1")
+
+    candidates = []
+    unavailable = []
+    for session in sessions:
+        if session["session_id"] == event["source"]["session_id"]:
+            continue
+        if not session["active"]:
+            unavailable.append({"session_id": session["session_id"], "reason": "session is not active", "delivery": {"status": "unavailable"}})
+            continue
+        signals = candidate_signals(event, session)
+        outcome, reason = deterministic_outcome(event, session, signals)
+        candidates.append({"session": session, "signals": signals, "outcome": outcome, "reason": reason})
+
+    ambiguous = [item for item in candidates if item["outcome"] is None]
+    fixture = load_fixture(args.decisions)
+    provider_meta = {"provider": config["provider"], "model": None, "version": None, "batch_latency_ms": 0}
+    errors = []
+    decision_map = {}
+    if ambiguous:
+        if fixture is not None:
+            decision_map = fixture
+            provider_meta["version"] = "recorded-fixture"
+        elif args.offline:
+            errors.append("ambiguous candidates held because offline mode disables the decision service")
+        else:
+            try:
+                decision_map, provider_meta = call_service(config, event, ambiguous)
+            except RuntimeError as error:
+                errors.append(str(error))
+
+    recipients = []
+    for item in candidates:
+        session, outcome, reason = item["session"], item["outcome"], item["reason"]
+        decision = None
+        if outcome is None:
+            decision = decision_map.get(session["session_id"])
+            if not isinstance(decision, dict):
+                outcome, reason = "uncertain", "missing decision; held for review"
+            else:
+                answer = str(decision.get("answer", "uncertain"))
+                confidence = decision.get("confidence")
+                if answer not in ANSWERS:
+                    outcome, reason = "uncertain", "malformed decision; held for review"
+                elif not isinstance(confidence, (int, float)) or confidence < config["threshold"]:
+                    outcome, reason = "uncertain", "low or missing confidence; held for review"
+                else:
+                    outcome, reason = answer, f"{config['provider']} relevance decision"
+        selected = outcome == "relevant"
+        recipient = {
+            "session_id": session["session_id"],
+            "selected": selected,
+            "relevance": {"answer": outcome, "reason": reason, "signals": item["signals"]},
+            "transport": session.get("transport"),
+            "delivery": {"status": "pending" if selected else "held"},
+        }
+        if decision is not None:
+            recipient["relevance"]["decision"] = decision
+        if selected:
+            recipient["message"] = make_message(event, session, reason)
+        recipients.append(recipient)
+
+    selected_ids = {item["session_id"] for item in recipients if item["selected"]}
+    expected_ids = set(strings(event.get("expected_recipients"), "event.expected_recipients"))
+    decisions_used = [item.get("relevance", {}).get("decision") for item in recipients]
+    decisions_used = [item for item in decisions_used if isinstance(item, dict)]
+    evaluation = None
+    if expected_ids:
+        evaluation = {
+            "expected_recipients": sorted(expected_ids),
+            "missed_recipients": sorted(expected_ids - selected_ids),
+            "unnecessary_messages": sorted(selected_ids - expected_ids),
+        }
+    artifact = {
+        "schema_version": "1.0",
+        "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "event": event,
+        "policy": {"provider": config["provider"], "threshold": config["threshold"], "per_candidate": True},
+        "decision_service": provider_meta,
+        "recipients": recipients,
+        "unavailable": unavailable,
+        "errors": errors,
+        "summary": {
+            "active_candidates": len(candidates),
+            "selected": sum(item["selected"] for item in recipients),
+            "held": sum(not item["selected"] for item in recipients),
+            "unavailable": len(unavailable),
+            "ambiguous_decisions": len(ambiguous),
+            "decision_latency_ms": sum(float(item.get("latency_ms", 0)) for item in decisions_used if isinstance(item.get("latency_ms", 0), (int, float))),
+            "decision_cost_usd": sum(float(item.get("cost_usd", 0)) for item in decisions_used if isinstance(item.get("cost_usd", 0), (int, float))),
+        },
+    }
+    if evaluation is not None:
+        artifact["evaluation"] = evaluation
+    Path(args.output).write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+    print(args.output)
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except (ValueError, OSError, json.JSONDecodeError) as error:
+        print(str(error), file=sys.stderr)
+        raise SystemExit(2)

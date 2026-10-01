@@ -1,6 +1,7 @@
 import importlib.util
 import json
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -11,6 +12,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from validate import validate
 
 CSV_SCRIPT_DIR = ROOT / 'skills/csv-profile/scripts'
+ROUTE_SKILL_DIR = ROOT / 'skills/route-agent-message'
 sys.path.insert(0, str(CSV_SCRIPT_DIR))
 spec = importlib.util.spec_from_file_location('profile_csv', CSV_SCRIPT_DIR / 'profile_csv.py')
 module = importlib.util.module_from_spec(spec)
@@ -175,6 +177,72 @@ class LibraryTests(unittest.TestCase):
             review_path.write_text(json.dumps(review), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'raw_values_sent'):
                 analyzer.attach_semantic_review(report, review_path)
+
+    def test_route_agent_message_acceptance_scenario_and_reports(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            route = root / 'route.json'
+            subprocess.run([
+                sys.executable, str(ROUTE_SKILL_DIR / 'scripts/route-event'),
+                str(ROUTE_SKILL_DIR / 'samples/api-change-event.json'),
+                str(ROUTE_SKILL_DIR / 'samples/active-sessions.json'), str(route), '--offline',
+            ], check=True, capture_output=True, text=True)
+            data = json.loads(route.read_text())
+            selected = {item['session_id'] for item in data['recipients'] if item['selected']}
+            self.assertEqual(selected, {'web-client', 'mobile-client', 'contract-tests'})
+            self.assertEqual(data['summary']['active_candidates'], 5)
+            self.assertEqual(data['summary']['held'], 2)
+            self.assertEqual(data['policy']['provider'], 'laya')
+            self.assertEqual(data['evaluation']['missed_recipients'], [])
+            self.assertEqual(data['evaluation']['unnecessary_messages'], [])
+
+            receipts = root / 'receipts.json'
+            receipts.write_text(json.dumps({'receipts': [
+                {'recipient_id': recipient, 'status': 'delivered', 'transport': 'fixture'}
+                for recipient in sorted(selected)
+            ]}))
+            html_report = root / 'route.html'
+            markdown_report = root / 'route.md'
+            for report_format, output in [('html', html_report), ('markdown', markdown_report)]:
+                subprocess.run([
+                    sys.executable, str(ROUTE_SKILL_DIR / 'scripts/inspect-route'), str(route),
+                    '--receipts', str(receipts), '--format', report_format, '--out', str(output),
+                ], check=True, capture_output=True, text=True)
+            html_text = html_report.read_text(encoding='utf-8')
+            self.assertIn('<!doctype html>', html_text)
+            self.assertIn('From event to receipt', html_text)
+            self.assertNotIn('/*__ROUTE_', html_text)
+            self.assertNotIn('https://', html_text)
+            self.assertIn('| web-client | yes | relevant | delivered |', markdown_report.read_text(encoding='utf-8'))
+
+    def test_route_agent_message_uses_configurable_decision_provider(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            event = root / 'event.json'
+            registry = root / 'registry.json'
+            decisions = root / 'decisions.json'
+            route = root / 'route.json'
+            event.write_text(json.dumps({
+                'source': {'session_id': 'source'}, 'summary': 'Question about shared auth behavior',
+                'repo': 'platform', 'topic': 'shared behavior', 'evidence_ref': 'issue:1',
+                'requested_action': 'Confirm whether your task is affected.',
+            }))
+            registry.write_text(json.dumps({'sessions': [{
+                'session_id': 'candidate', 'active': True, 'repo': 'platform',
+                'task': 'Investigate client behavior', 'components': [], 'owned_paths': [],
+                'depends_on': [], 'topics': [], 'transport': {'kind': 'fixture', 'target': 'candidate'},
+            }]}))
+            decisions.write_text(json.dumps({'decisions': [{
+                'candidate_id': 'candidate', 'answer': 'relevant', 'confidence': .91,
+            }]}))
+            subprocess.run([
+                sys.executable, str(ROUTE_SKILL_DIR / 'scripts/route-event'),
+                str(event), str(registry), str(route), '--provider', 'jev', '--decisions', str(decisions),
+            ], check=True, capture_output=True, text=True)
+            data = json.loads(route.read_text())
+            self.assertEqual(data['policy']['provider'], 'jev')
+            self.assertTrue(data['recipients'][0]['selected'])
+            self.assertEqual(data['summary']['ambiguous_decisions'], 1)
 
 if __name__ == '__main__':
     unittest.main()
