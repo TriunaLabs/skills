@@ -1,0 +1,91 @@
+#!/usr/bin/env python3
+"""Render a release evidence artifact as JSON, Markdown, or interactive HTML."""
+import argparse
+import html
+import json
+import sys
+from pathlib import Path
+
+ASSETS = Path(__file__).resolve().parents[1] / "assets"
+
+
+def read_artifact(path):
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if data.get("schema_version") != "1.0" or not isinstance(data.get("entries"), list) or not isinstance(data.get("source"), dict):
+        raise ValueError("input is not a release-brief 1.0 artifact")
+    return data
+
+
+def cell(value):
+    return str(value if value is not None else "—").replace("|", "\\|").replace("\n", " ")
+
+
+def render_markdown(data):
+    source, evidence = data["source"], data.get("evidence", {})
+    release_name = source.get("target_tag") or source.get("target_ref") or source.get("target_sha", "")[:8]
+    lines = [
+        f"# {release_name}", "",
+        f"> **Draft** for **{data.get('audience')}** from `{source.get('base_ref')}..{source.get('target_ref')}`. Git history does not establish deployment.",
+    ]
+    groups = {}
+    for entry in data.get("entries", []):
+        if entry.get("included"):
+            groups.setdefault(entry.get("category", "Changed"), []).append(entry)
+    for category in ["Breaking", "Security", "Added", "Fixed", "Performance", "Documentation", "Changed", "Internal"]:
+        if category not in groups:
+            continue
+        lines.extend(["", f"## {category}", ""])
+        for entry in groups[category]:
+            refs = ", ".join(f"`{ref}`" if ref.startswith("commit:") else ref for ref in entry.get("evidence_refs", []))
+            uncertainty = f" **Review:** {entry['uncertainty']}" if entry.get("uncertainty") else ""
+            lines.append(f"- {entry.get('title')} ({refs}){uncertainty}")
+    lines.extend(["", "## Verification and deployment", ""])
+    tests = evidence.get("tests", [])
+    if tests:
+        lines.extend([f"- Test — **{item.get('name')}**: {item.get('status')} ({item.get('evidence_ref') or 'no evidence reference'})" for item in tests])
+    else:
+        lines.append("- Tests: unknown; no records supplied.")
+    deployment = evidence.get("deployment", {})
+    lines.append(f"- Deployment: {deployment.get('status', 'unknown')} ({deployment.get('evidence_ref') or 'no evidence reference'})")
+    rollback = evidence.get("rollback", {})
+    lines.append(f"- Rollback: {rollback.get('status', 'unknown')} ({rollback.get('evidence_ref') or 'no evidence reference'})")
+    if data.get("risk_flags"):
+        lines.extend(["", "## Review signals", ""] + [f"- **{item.get('severity')} · {item.get('kind')}** — {item.get('reason')}" for item in data["risk_flags"]])
+    limitations = evidence.get("known_limitations", [])
+    if limitations:
+        lines.extend(["", "## Known limitations", ""] + [f"- {item}" for item in limitations])
+    lines.extend(["", "## Evidence gaps", ""] + ([f"- {item}" for item in data.get("evidence_gaps", [])] or ["- None recorded."]))
+    lines.extend(["", "## Range provenance", "", f"- Base: `{source.get('base_sha')}`", f"- Target: `{source.get('target_sha')}`", f"- Commits: {data.get('summary', {}).get('commits', 0)}", f"- Files: {data.get('summary', {}).get('changed_files', 0)}", f"- Working-tree entries at collection: {source.get('dirty_entries', 0)}", ""])
+    return "\n".join(lines)
+
+
+def render_html(data):
+    template = (ASSETS / "release-report-template.html").read_text(encoding="utf-8")
+    css = (ASSETS / "release-report.css").read_text(encoding="utf-8")
+    script = (ASSETS / "release-report.js").read_text(encoding="utf-8")
+    payload = json.dumps(data, separators=(",", ":")).replace("<", "\\u003c")
+    title = html.escape(str(data["source"].get("target_tag") or data["source"].get("target_ref") or "Release brief"))
+    return template.replace("/*__RELEASE_CSS__*/", css).replace("/*__RELEASE_JS__*/", script).replace("__RELEASE_DATA__", payload).replace("__RELEASE_TITLE__", title)
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("artifact")
+    parser.add_argument("--format", choices=["json", "markdown", "html"], default="markdown")
+    parser.add_argument("--out")
+    args = parser.parse_args(argv)
+    data = read_artifact(args.artifact)
+    rendered = json.dumps(data, indent=2) + "\n" if args.format == "json" else render_html(data) if args.format == "html" else render_markdown(data)
+    if args.out:
+        Path(args.out).write_text(rendered, encoding="utf-8")
+        print(args.out)
+    else:
+        print(rendered, end="")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (ValueError, OSError, json.JSONDecodeError) as error:
+        print(str(error), file=sys.stderr)
+        raise SystemExit(2)

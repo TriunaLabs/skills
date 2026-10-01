@@ -1,0 +1,13 @@
+{
+  "issues": [
+    {"id":"142","title":"Expose absolute session expiry","url":"https://tracker.example/issues/142","state":"closed"},
+    {"id":"155","title":"Prevent stale refresh tokens","url":"https://tracker.example/issues/155","state":"closed"}
+  ],
+  "tests": [
+    {"name":"API contract suite","status":"passed","evidence_ref":"run:8841"},
+    {"name":"Mobile compatibility matrix","status":"partial","evidence_ref":"run:8846"}
+  ],
+  "deployment": {"status":"not_deployed","environment":null,"evidence_ref":null},
+  "rollback": {"status":"documented","evidence_ref":"docs:rollback-auth-v2"},
+  "known_limitations": ["Mobile clients older than 4.8 do not read the absolute expiry field."]
+}

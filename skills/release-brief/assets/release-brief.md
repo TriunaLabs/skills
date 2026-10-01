@@ -1,15 +1,28 @@
-# Release [version] — draft
+# {{release_name}}
 
-Revision range:
-Audience:
-Deployment status: Unverified
+> Draft from `{{base}}..{{target}}` for {{audience}}. Merge history does not establish deployment.
 
 ## Highlights
 
-## Fixes
+- {{evidence-backed outcome with commit or issue reference}}
 
-## Breaking changes and migration
+## Breaking changes
 
-## Known limitations
+- Previous behavior: {{known or unknown}}
+- New behavior: {{known or unknown}}
+- Required action: {{known or unknown}}
 
-## Evidence
+## Verification and deployment
+
+- Tests: {{verified result or unknown}}
+- Deployment: {{verified result or unknown}}
+- Rollback: {{evidence reference or unknown}}
+
+## Known limitations and evidence gaps
+
+- {{limitation or unresolved claim}}
+
+## Range provenance
+
+- Base: `{{resolved_base_sha}}`
+- Target: `{{resolved_target_sha}}`

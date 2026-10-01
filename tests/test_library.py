@@ -13,6 +13,7 @@ from validate import validate
 
 CSV_SCRIPT_DIR = ROOT / 'skills/csv-profile/scripts'
 ROUTE_SKILL_DIR = ROOT / 'skills/route-agent-message'
+RELEASE_SKILL_DIR = ROOT / 'skills/release-brief'
 sys.path.insert(0, str(CSV_SCRIPT_DIR))
 spec = importlib.util.spec_from_file_location('profile_csv', CSV_SCRIPT_DIR / 'profile_csv.py')
 module = importlib.util.module_from_spec(spec)
@@ -243,6 +244,65 @@ class LibraryTests(unittest.TestCase):
             self.assertEqual(data['policy']['provider'], 'jev')
             self.assertTrue(data['recipients'][0]['selected'])
             self.assertEqual(data['summary']['ambiguous_decisions'], 1)
+
+    def test_release_brief_collects_git_evidence_and_renders_reports(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = root / 'repo'
+            repo.mkdir()
+            def run_git(*args):
+                return subprocess.run(['git', '-C', str(repo), *args], check=True, capture_output=True, text=True).stdout.strip()
+            run_git('init')
+            run_git('config', 'user.email', 'fixture@example.com')
+            run_git('config', 'user.name', 'Release Fixture')
+            (repo / 'README.md').write_text('base\n')
+            run_git('add', 'README.md')
+            run_git('commit', '-m', 'chore: initial fixture')
+            base = run_git('rev-parse', 'HEAD')
+            (repo / 'openapi').mkdir()
+            (repo / 'openapi/auth.yaml').write_text('expires_at: string\n')
+            run_git('add', 'openapi/auth.yaml')
+            run_git('commit', '-m', 'feat(auth): return absolute session expiry (#142)')
+            (repo / 'openapi/auth.yaml').write_text('session:\n  expires_at: string\n')
+            run_git('add', 'openapi/auth.yaml')
+            run_git('commit', '-m', 'feat(auth)!: remove expires_in from response', '-m', 'BREAKING CHANGE: clients must read session.expires_at.')
+            target = run_git('rev-parse', 'HEAD')
+            evidence = root / 'evidence.json'
+            evidence.write_text(json.dumps({
+                'issues': [{'id': '142', 'title': 'Expiry contract', 'url': 'https://tracker.example/142', 'state': 'closed'}],
+                'tests': [{'name': 'contract suite', 'status': 'passed', 'evidence_ref': 'run:1'}],
+                'deployment': {'status': 'not_deployed'},
+                'rollback': {'status': 'documented', 'evidence_ref': 'docs:rollback'},
+                'known_limitations': ['Older clients need an upgrade.'],
+            }))
+            artifact = root / 'release.json'
+            subprocess.run([
+                sys.executable, str(RELEASE_SKILL_DIR / 'scripts/collect-release'), '--repo', str(repo),
+                '--base', base, '--target', target, '--audience', 'users', '--evidence', str(evidence), '--out', str(artifact),
+            ], check=True, capture_output=True, text=True)
+            data = json.loads(artifact.read_text(encoding='utf-8'))
+            self.assertEqual(data['summary']['commits'], 2)
+            self.assertEqual(data['source']['base_sha'], base)
+            self.assertEqual(data['source']['target_sha'], target)
+            self.assertEqual({entry['category'] for entry in data['entries']}, {'Added', 'Breaking'})
+            self.assertIn('142', data['commits'][0]['verified_issue_refs'])
+            self.assertTrue(any(item['kind'] == 'breaking-change' for item in data['risk_flags']))
+            self.assertEqual(data['readiness'], 'draft')
+
+            html_report, markdown_report = root / 'release.html', root / 'release.md'
+            for report_format, output in [('html', html_report), ('markdown', markdown_report)]:
+                subprocess.run([
+                    sys.executable, str(RELEASE_SKILL_DIR / 'scripts/render-release'), str(artifact),
+                    '--format', report_format, '--out', str(output),
+                ], check=True, capture_output=True, text=True)
+            html_text = html_report.read_text(encoding='utf-8')
+            self.assertIn('<!doctype html>', html_text)
+            self.assertIn('Release entries', html_text)
+            self.assertNotIn('/*__RELEASE_', html_text)
+            self.assertNotIn('<script src=', html_text)
+            markdown_text = markdown_report.read_text(encoding='utf-8')
+            self.assertIn('**Draft**', markdown_text)
+            self.assertIn('## Breaking', markdown_text)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,203 @@
+#!/usr/bin/env python3
+"""Collect deterministic Git-range and supplied release evidence into JSON."""
+import argparse
+import json
+import re
+import subprocess
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+AUDIENCES = {"users", "developers", "operators", "executives"}
+TEST_STATUSES = {"passed", "failed", "partial", "not_run", "unknown"}
+DEPLOYMENT_STATUSES = {"deployed", "partially_deployed", "not_deployed", "unknown"}
+CATEGORY_AUDIENCES = {
+    "Breaking": ["users", "developers", "operators", "executives"],
+    "Security": ["users", "developers", "operators", "executives"],
+    "Added": ["users", "developers", "operators", "executives"],
+    "Fixed": ["users", "developers", "operators"],
+    "Performance": ["users", "developers", "operators", "executives"],
+    "Documentation": ["users", "developers"],
+    "Changed": ["developers", "operators", "executives"],
+    "Internal": ["developers"],
+}
+
+
+def git(repo, *args, allow_failure=False):
+    result = subprocess.run(["git", "-C", str(repo), *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if result.returncode and not allow_failure:
+        raise ValueError(result.stderr.strip() or f"git {' '.join(args)} failed")
+    return result.stdout.strip()
+
+
+def resolve(repo, ref):
+    value = git(repo, "rev-parse", "--verify", "--end-of-options", f"{ref}^{{commit}}")
+    if not re.fullmatch(r"[0-9a-f]{40,64}", value):
+        raise ValueError(f"could not resolve commit: {ref}")
+    return value
+
+
+def read_evidence(path):
+    evidence = {"issues": [], "tests": [], "deployment": {"status": "unknown"}, "rollback": {"status": "unknown"}, "known_limitations": []}
+    if path:
+        supplied = json.loads(Path(path).read_text(encoding="utf-8"))
+        if not isinstance(supplied, dict):
+            raise ValueError("evidence must be a JSON object")
+        evidence.update(supplied)
+    if not isinstance(evidence.get("issues"), list) or not isinstance(evidence.get("tests"), list):
+        raise ValueError("evidence issues and tests must be arrays")
+    if not isinstance(evidence.get("known_limitations"), list) or not all(isinstance(item, str) for item in evidence["known_limitations"]):
+        raise ValueError("known_limitations must be an array of strings")
+    for test in evidence["tests"]:
+        if not isinstance(test, dict) or test.get("status") not in TEST_STATUSES or not test.get("name"):
+            raise ValueError("each test requires a name and supported status")
+    deployment = evidence.get("deployment")
+    if not isinstance(deployment, dict) or deployment.get("status") not in DEPLOYMENT_STATUSES:
+        raise ValueError("deployment requires a supported status")
+    return evidence
+
+
+def category(subject, body):
+    combined = f"{subject}\n{body}".casefold()
+    if re.match(r"^[a-z]+(?:\([^)]+\))?!:", subject, re.I) or "breaking change:" in combined:
+        return "Breaking"
+    prefix = re.match(r"^([a-z]+)(?:\([^)]+\))?:", subject, re.I)
+    kind = prefix.group(1).casefold() if prefix else ""
+    # A conventional scope such as feat(auth) describes the component, not the
+    # nature of the change. Reserve Security for explicit security language.
+    subject_without_prefix = re.sub(r"^[a-z]+(?:\([^)]+\))?:\s*", "", subject, flags=re.I)
+    security_text = f"{subject_without_prefix}\n{body}".casefold()
+    if "security" in security_text or re.search(r"\b(cve|vulnerability|authentication|authorization)\b", security_text):
+        return "Security"
+    return {"feat":"Added", "fix":"Fixed", "perf":"Performance", "docs":"Documentation", "refactor":"Changed", "test":"Internal", "chore":"Internal", "build":"Internal", "ci":"Internal"}.get(kind, "Changed")
+
+
+def clean_subject(subject):
+    return re.sub(r"^[a-z]+(?:\([^)]+\))?!?:\s*", "", subject, flags=re.I).strip() or subject.strip()
+
+
+def parse_commits(repo, base_sha, target_sha, audience, issue_map):
+    raw = git(repo, "log", "--reverse", "--format=%H%x1f%P%x1f%an%x1f%aI%x1f%s%x1f%b%x1e", f"{base_sha}..{target_sha}")
+    commits, entries = [], []
+    for record in raw.split("\x1e"):
+        record = record.strip("\r\n")
+        if not record:
+            continue
+        fields = record.split("\x1f", 5)
+        if len(fields) != 6:
+            raise ValueError("unexpected git log record")
+        sha, parents, author, authored_at, subject, body = fields
+        paths = [line for line in git(repo, "diff-tree", "--no-commit-id", "--name-only", "-r", sha).splitlines() if line]
+        item_category = category(subject, body)
+        issue_ids = sorted(set(re.findall(r"(?<![\w])#(\d+)\b", f"{subject}\n{body}")))
+        issue_evidence = [issue_map[value] for value in issue_ids if value in issue_map]
+        audiences = CATEGORY_AUDIENCES[item_category]
+        commit = {
+            "sha": sha, "short_sha": sha[:8], "parents": parents.split(), "author": author,
+            "authored_at": authored_at, "subject": subject, "body": body.strip(), "paths": paths,
+            "category": item_category, "issue_refs": issue_ids,
+            "verified_issue_refs": [str(item.get("id")) for item in issue_evidence],
+            "audiences": audiences, "included": audience in audiences,
+        }
+        commits.append(commit)
+        entries.append({
+            "id": sha[:12], "title": clean_subject(subject), "category": item_category,
+            "audiences": audiences, "included": audience in audiences,
+            "evidence_refs": [f"commit:{sha}"] + [str(item.get("url") or f"issue:{item.get('id')}") for item in issue_evidence],
+            "paths": paths, "uncertainty": None if item_category not in {"Changed", "Internal"} else "User-visible impact not established by deterministic classification.",
+        })
+    return commits, entries
+
+
+def parse_files(repo, base_sha, target_sha):
+    stats = {}
+    for line in git(repo, "diff", "--numstat", base_sha, target_sha, "--").splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 3:
+            added, deleted, path = parts[0], parts[1], parts[-1]
+            stats[path] = {"additions": None if added == "-" else int(added), "deletions": None if deleted == "-" else int(deleted)}
+    files = []
+    for line in git(repo, "diff", "--name-status", "--find-renames", base_sha, target_sha, "--").splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 2:
+            status, path = parts[0], parts[-1]
+            files.append({"path": path, "old_path": parts[1] if status.startswith("R") and len(parts) > 2 else None, "status": status, **stats.get(path, {"additions": None, "deletions": None})})
+    return files
+
+
+def risk_flags(commits, files):
+    flags = []
+    def add(kind, severity, reason, refs):
+        if not any(item["kind"] == kind for item in flags):
+            flags.append({"kind": kind, "severity": severity, "reason": reason, "evidence_refs": refs})
+    breaking = [item for item in commits if item["category"] == "Breaking"]
+    if breaking:
+        add("breaking-change", "high", "Commit metadata contains a breaking-change marker.", [f"commit:{item['sha']}" for item in breaking])
+    paths = [item["path"].casefold() for item in files]
+    migration_paths = [item for item in files if "migration" in item["path"].casefold() or "schema" in item["path"].casefold()]
+    if migration_paths:
+        add("data-migration", "high", "The range changes schema or migration paths.", [f"path:{item['path']}" for item in migration_paths])
+    auth_paths = [item for item in files if re.search(r"(^|/)(auth|security)(/|[._-])", item["path"].casefold())]
+    security_commits = [item for item in commits if item["category"] == "Security"]
+    if auth_paths or security_commits:
+        add("security-or-auth", "high", "The range touches authentication or security evidence.", [f"path:{item['path']}" for item in auth_paths] + [f"commit:{item['sha']}" for item in security_commits])
+    dependency_paths = [item for item in files if item["path"].casefold().endswith(("package.json", "package-lock.json", "pnpm-lock.yaml", "uv.lock", "requirements.txt"))]
+    if dependency_paths:
+        add("dependency-change", "medium", "The range changes dependency declarations or locks.", [f"path:{item['path']}" for item in dependency_paths])
+    config_paths = [item for item in files if "config" in item["path"].casefold() or item["path"].casefold().endswith((".env.example", "wrangler.jsonc", "dockerfile"))]
+    if config_paths:
+        add("configuration-change", "medium", "The range changes runtime or deployment configuration.", [f"path:{item['path']}" for item in config_paths])
+    return flags
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repo", required=True)
+    parser.add_argument("--base", required=True)
+    parser.add_argument("--target", required=True)
+    parser.add_argument("--audience", required=True, choices=sorted(AUDIENCES))
+    parser.add_argument("--evidence")
+    parser.add_argument("--out", required=True)
+    args = parser.parse_args(argv)
+    repo = Path(args.repo).resolve()
+    if not (repo / ".git").exists() and git(repo, "rev-parse", "--git-dir", allow_failure=True) == "":
+        raise ValueError("repo must be a Git worktree")
+    base_sha, target_sha = resolve(repo, args.base), resolve(repo, args.target)
+    evidence = read_evidence(args.evidence)
+    issue_map = {str(item.get("id")): item for item in evidence["issues"] if isinstance(item, dict) and item.get("id") is not None}
+    commits, entries = parse_commits(repo, base_sha, target_sha, args.audience, issue_map)
+    files = parse_files(repo, base_sha, target_sha)
+    risks = risk_flags(commits, files)
+    target_tag = git(repo, "describe", "--tags", "--exact-match", target_sha, allow_failure=True) or None
+    gaps = []
+    if not evidence["tests"] or not any(item["status"] == "passed" and item.get("evidence_ref") for item in evidence["tests"]):
+        gaps.append("No passing test evidence with a reference was supplied.")
+    if evidence["deployment"].get("status") == "unknown":
+        gaps.append("Deployment status is unknown.")
+    if evidence.get("rollback", {}).get("status") in {None, "unknown"}:
+        gaps.append("Rollback evidence was not supplied.")
+    if any(item["category"] == "Breaking" for item in commits):
+        gaps.append("Breaking-change markers require verified previous behavior, new behavior, and migration action.")
+    unverified_issues = sorted({value for item in commits for value in item["issue_refs"] if value not in issue_map})
+    if unverified_issues:
+        gaps.append(f"Issue references lack supplied records: {', '.join('#' + value for value in unverified_issues)}.")
+    additions = sum(item["additions"] or 0 for item in files)
+    deletions = sum(item["deletions"] or 0 for item in files)
+    artifact = {
+        "schema_version": "1.0", "readiness": "draft",
+        "source": {"repository": repo.name, "base_ref": args.base, "target_ref": args.target, "base_sha": base_sha, "target_sha": target_sha, "target_tag": target_tag, "dirty_entries": len(git(repo, "status", "--porcelain").splitlines()), "collected_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")},
+        "audience": args.audience,
+        "summary": {"commits": len(commits), "changed_files": len(files), "additions": additions, "deletions": deletions, "included_entries": sum(item["included"] for item in entries), "breaking_changes": sum(item["category"] == "Breaking" for item in entries), "risk_flags": len(risks), "evidence_gaps": len(gaps)},
+        "entries": entries, "commits": commits, "files": files, "risk_flags": risks,
+        "evidence": evidence, "evidence_gaps": gaps,
+    }
+    Path(args.out).write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+    print(args.out)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (ValueError, OSError, json.JSONDecodeError) as error:
+        print(str(error), file=sys.stderr)
+        raise SystemExit(2)

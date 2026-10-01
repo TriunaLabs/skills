@@ -1,24 +1,22 @@
 {
-  "title": "Release brief",
+  "title": "Build a release brief",
   "category": "Documentation",
-  "tags": [
-    "releases",
-    "git",
-    "writing"
-  ],
-  "version": "0.1.0",
+  "tags": ["releases", "git", "provenance", "verification", "html-report"],
+  "version": "0.2.0",
   "license": "MIT",
   "author": "TriunaLabs",
-  "origin": "Original starter authored for this public library; not copied from installed skills.",
-  "requirements": [
-    "Git and local repository access; issue access only when referenced."
-  ],
-  "compatibility": {
-    "codex": "format-compatible",
-    "claude-code": "format-compatible",
-    "other-agents": "untested"
+  "origin": "Original TriunaLabs workflow substantially upgraded with deterministic Git evidence collection, report rendering, fixtures, and tests.",
+  "preview": {
+    "src": "assets/catalog-preview.png",
+    "alt": "Interactive release brief showing immutable Git range metrics, categorized changes, release risks, and evidence gaps."
   },
+  "requirements": [
+    "Python 3.10+, Git, and read access to a local repository. Issue, test, deployment, rollback, and limitation evidence is optional but must be supplied explicitly when used. HTML reports run in a modern browser with JavaScript enabled."
+  ],
+  "compatibility": {"codex":"format-compatible","claude-code":"format-compatible","other-agents":"untested"},
   "examples": [
-    "Draft release notes for v1.2.0..v1.3.0 for application users."
+    "Build an interactive release brief for v1.2.0..v1.3.0 for application users and show every evidence gap.",
+    "Create developer-facing Markdown release notes from these two commit SHAs and attach the supplied test and deployment evidence.",
+    "Review this release range for breaking changes, migrations, configuration changes, and missing rollback evidence without publishing anything."
   ]
 }
