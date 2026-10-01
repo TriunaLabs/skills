@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create Interface Design System"
+  short_description: "Generate a reusable interface design system"
+  default_prompt: "Use $create-interface-design-system to generate a coherent, inspectable interface design system and specimen from this product brief."

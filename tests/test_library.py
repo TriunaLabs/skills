@@ -16,6 +16,7 @@ ROUTE_SKILL_DIR = ROOT / 'skills/route-agent-message'
 RELEASE_SKILL_DIR = ROOT / 'skills/release-brief'
 ANSWER_SKILL_DIR = ROOT / 'skills/answer-ready-web'
 UX_SKILL_DIR = ROOT / 'skills/laws-of-ux'
+DESIGN_SKILL_DIR = ROOT / 'skills/create-interface-design-system'
 sys.path.insert(0, str(CSV_SCRIPT_DIR))
 spec = importlib.util.spec_from_file_location('profile_csv', CSV_SCRIPT_DIR / 'profile_csv.py')
 module = importlib.util.module_from_spec(spec)
@@ -39,14 +40,15 @@ class LibraryTests(unittest.TestCase):
     def test_build_excludes_hidden_skills(self):
         subprocess.run([sys.executable, str(ROOT / 'scripts/build.py')], check=True, capture_output=True, text=True)
         catalog = json.loads((ROOT / 'dist/catalog.json').read_text(encoding='utf-8'))
-        self.assertEqual({item['name'] for item in catalog}, {'answer-ready-web', 'csv-profile', 'laws-of-ux', 'release-brief', 'route-agent-message'})
+        self.assertEqual({item['name'] for item in catalog}, {'answer-ready-web', 'create-interface-design-system', 'csv-profile', 'laws-of-ux', 'release-brief', 'route-agent-message'})
         self.assertFalse((ROOT / 'dist/skills/decision-record').exists())
         self.assertFalse((ROOT / 'dist/skills/reproduce-bug').exists())
         self.assertTrue((ROOT / 'dist/assets/triunalabs-horizontal.svg').is_file())
         index = (ROOT / 'dist/index.html').read_text(encoding='utf-8')
-        self.assertIn('Five complete, inspectable workflows', index)
+        self.assertIn('Six complete, inspectable workflows', index)
         self.assertIn('data-skill="answer-ready-web"', index)
         self.assertIn('data-skill="laws-of-ux"', index)
+        self.assertIn('data-skill="create-interface-design-system"', index)
 
     def test_invalid_metadata_and_resources_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -297,6 +299,32 @@ class LibraryTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn('unsupported principle', result.stderr)
             self.assertIn('anchor x and y', result.stderr)
+
+    def test_interface_design_system_generation_and_validation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'system'
+            subprocess.run([sys.executable, str(DESIGN_SKILL_DIR / 'scripts/generate_system.py'), str(DESIGN_SKILL_DIR / 'assets/sample-brief.json'), '--out', str(out)], check=True, capture_output=True, text=True)
+            expected = {'design-system.json', 'tokens.json', 'tokens.css', 'DESIGN-GUIDE.md', 'agent-prompt.md', 'specimen.html'}
+            self.assertEqual({path.name for path in out.iterdir()}, expected)
+            data = json.loads((out / 'design-system.json').read_text(encoding='utf-8'))
+            self.assertEqual(data['direction']['label'], 'precision')
+            self.assertEqual(set(data['components']['button']['states']), {'default','hover','active','focus-visible','disabled','loading','error','success'})
+            subprocess.run([sys.executable, str(DESIGN_SKILL_DIR / 'scripts/validate_system.py'), str(out / 'design-system.json')], check=True, capture_output=True, text=True)
+            specimen = (out / 'specimen.html').read_text(encoding='utf-8')
+            self.assertIn('class="mobile-nav"', specimen)
+            self.assertIn('prefers-reduced-motion', specimen)
+            self.assertNotIn('<script src=', specimen)
+
+    def test_interface_design_system_rejects_bad_contrast(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); out = root / 'system'
+            subprocess.run([sys.executable, str(DESIGN_SKILL_DIR / 'scripts/generate_system.py'), str(DESIGN_SKILL_DIR / 'assets/sample-brief.json'), '--out', str(out)], check=True, capture_output=True, text=True)
+            data = json.loads((out / 'design-system.json').read_text(encoding='utf-8'))
+            data['color']['roles']['text'] = data['color']['roles']['background']
+            invalid = root / 'invalid.json'; invalid.write_text(json.dumps(data), encoding='utf-8')
+            result = subprocess.run([sys.executable, str(DESIGN_SKILL_DIR / 'scripts/validate_system.py'), str(invalid)], capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('below 4.5:1', result.stderr)
 
     def test_route_agent_message_uses_configurable_decision_provider(self):
         with tempfile.TemporaryDirectory() as tmp:
