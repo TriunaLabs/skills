@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+  <title id="title">Answer-ready web audit preview</title>
+  <desc id="desc">A sophisticated report with an overall score, readiness dimensions, evidence ledger, and prioritized issues.</desc>
+  <rect width="1200" height="675" fill="#f5f6f1"/>
+  <rect x="38" y="36" width="1124" height="603" rx="20" fill="#fff" stroke="#d7ddd8"/>
+  <rect x="38" y="36" width="1124" height="10" rx="5" fill="#146c4b"/>
+  <text x="76" y="92" fill="#146c4b" font-family="ui-monospace,monospace" font-size="13" font-weight="700" letter-spacing="2">TRIUNA LABS · ANSWER-READY OBSERVATION</text>
+  <text x="76" y="142" fill="#17211b" font-family="Georgia,serif" font-size="42" font-weight="600">Make the page clear, credible, and quotable.</text>
+  <text x="76" y="178" fill="#637067" font-family="system-ui,sans-serif" font-size="17">People-first structure · visible evidence · crawlable semantics · honest limits</text>
+  <g transform="translate(76 220)">
+    <circle cx="82" cy="82" r="76" fill="#e3f0e8" stroke="#146c4b" stroke-width="2"/>
+    <text x="82" y="82" text-anchor="middle" fill="#146c4b" font-family="Georgia,serif" font-size="50" font-weight="700">78</text>
+    <text x="82" y="108" text-anchor="middle" fill="#637067" font-family="system-ui,sans-serif" font-size="12">DIRECTIONAL SCORE</text>
+  </g>
+  <g font-family="system-ui,sans-serif">
+    <g transform="translate(270 220)"><rect width="392" height="96" rx="12" fill="#f8faf7" stroke="#d7ddd8"/><text x="20" y="28" fill="#17211b" font-size="15" font-weight="700">Audience and proposition</text><text x="352" y="28" fill="#146c4b" font-size="18" font-weight="800">9</text><rect x="20" y="45" width="352" height="7" rx="4" fill="#e8ece8"/><rect x="20" y="45" width="317" height="7" rx="4" fill="#146c4b"/><text x="20" y="76" fill="#637067" font-size="12">One clear H1 and a direct opening proposition.</text></g>
+    <g transform="translate(680 220)"><rect width="406" height="96" rx="12" fill="#f8faf7" stroke="#d7ddd8"/><text x="20" y="28" fill="#17211b" font-size="15" font-weight="700">Evidence and claim support</text><text x="366" y="28" fill="#c7861c" font-size="18" font-weight="800">5</text><rect x="20" y="45" width="366" height="7" rx="4" fill="#e8ece8"/><rect x="20" y="45" width="183" height="7" rx="4" fill="#c7861c"/><text x="20" y="76" fill="#637067" font-size="12">Three claims need direct, scoped sources.</text></g>
+    <g transform="translate(270 332)"><rect width="392" height="96" rx="12" fill="#f8faf7" stroke="#d7ddd8"/><text x="20" y="28" fill="#17211b" font-size="15" font-weight="700">Semantics and accessibility</text><text x="352" y="28" fill="#146c4b" font-size="18" font-weight="800">8</text><rect x="20" y="45" width="352" height="7" rx="4" fill="#e8ece8"/><rect x="20" y="45" width="282" height="7" rx="4" fill="#146c4b"/><text x="20" y="76" fill="#637067" font-size="12">Logical headings, landmarks, and descriptive links.</text></g>
+    <g transform="translate(680 332)"><rect width="406" height="96" rx="12" fill="#f8faf7" stroke="#d7ddd8"/><text x="20" y="28" fill="#17211b" font-size="15" font-weight="700">Metadata and structured data</text><text x="366" y="28" fill="#146c4b" font-size="18" font-weight="800">8</text><rect x="20" y="45" width="366" height="7" rx="4" fill="#e8ece8"/><rect x="20" y="45" width="293" height="7" rx="4" fill="#146c4b"/><text x="20" y="76" fill="#637067" font-size="12">Visible facts mapped to the narrowest useful types.</text></g>
+  </g>
+  <g transform="translate(76 470)" font-family="system-ui,sans-serif">
+    <text x="0" y="0" fill="#17211b" font-size="17" font-weight="800">CLAIM-READINESS LEDGER</text>
+    <rect x="0" y="22" width="1010" height="100" rx="10" fill="#fff8e9" stroke="#e7c47f"/>
+    <rect x="18" y="42" width="82" height="25" rx="13" fill="#f4dfb7"/><text x="59" y="59" text-anchor="middle" fill="#825a10" font-size="11" font-weight="800">REVIEW</text>
+    <text x="120" y="59" fill="#17211b" font-size="14" font-weight="700">“Reduces manual review effort.”</text>
+    <text x="120" y="84" fill="#637067" font-size="12">Add a measured result with population, version, date, and a resolvable evidence source.</text>
+    <line x1="18" y1="101" x2="992" y2="101" stroke="#e7c47f"/>
+  </g>
+</svg>

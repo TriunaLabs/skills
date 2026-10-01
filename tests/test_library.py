@@ -14,6 +14,7 @@ from validate import validate
 CSV_SCRIPT_DIR = ROOT / 'skills/csv-profile/scripts'
 ROUTE_SKILL_DIR = ROOT / 'skills/route-agent-message'
 RELEASE_SKILL_DIR = ROOT / 'skills/release-brief'
+ANSWER_SKILL_DIR = ROOT / 'skills/answer-ready-web'
 sys.path.insert(0, str(CSV_SCRIPT_DIR))
 spec = importlib.util.spec_from_file_location('profile_csv', CSV_SCRIPT_DIR / 'profile_csv.py')
 module = importlib.util.module_from_spec(spec)
@@ -21,6 +22,10 @@ spec.loader.exec_module(module)
 analyze_spec = importlib.util.spec_from_file_location('analyze_csv', CSV_SCRIPT_DIR / 'analyze_csv.py')
 analyzer = importlib.util.module_from_spec(analyze_spec)
 analyze_spec.loader.exec_module(analyzer)
+answer_spec = importlib.util.spec_from_file_location('audit_page', ANSWER_SKILL_DIR / 'scripts/audit_page.py')
+answer_audit = importlib.util.module_from_spec(answer_spec)
+sys.modules[answer_spec.name] = answer_audit
+answer_spec.loader.exec_module(answer_audit)
 
 class LibraryTests(unittest.TestCase):
     def test_catalog(self):
@@ -33,7 +38,7 @@ class LibraryTests(unittest.TestCase):
     def test_build_excludes_hidden_skills(self):
         subprocess.run([sys.executable, str(ROOT / 'scripts/build.py')], check=True, capture_output=True, text=True)
         catalog = json.loads((ROOT / 'dist/catalog.json').read_text(encoding='utf-8'))
-        self.assertEqual({item['name'] for item in catalog}, {'csv-profile', 'release-brief', 'route-agent-message'})
+        self.assertEqual({item['name'] for item in catalog}, {'answer-ready-web', 'csv-profile', 'release-brief', 'route-agent-message'})
         self.assertFalse((ROOT / 'dist/skills/decision-record').exists())
         self.assertFalse((ROOT / 'dist/skills/reproduce-bug').exists())
         self.assertTrue((ROOT / 'dist/assets/triunalabs-horizontal.svg').is_file())
@@ -68,6 +73,35 @@ class LibraryTests(unittest.TestCase):
             meta.write_text(json.dumps(data))
             with self.assertRaisesRegex(ValueError, 'preview'):
                 validate(root)
+
+    def test_answer_ready_audit_separates_observation_from_claims(self):
+        page = '''<!doctype html><html lang="en"><head><title>Clear product</title>
+        <meta name="description" content="A clear description"><link rel="canonical" href="https://example.com/product">
+        <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Clear product"}</script>
+        </head><body><main><h1>Understand Clear Product before you adopt it</h1>
+        <p>Clear Product helps operations teams review a defined workflow, see its recorded evidence, and decide whether the software fits before they request a practical implementation discussion.</p>
+        <h2>How does the workflow operate?</h2><p>The workflow keeps its important output in visible text.</p>
+        <h2>What evidence is available?</h2><p>In a 120-run evaluation, the observed result improved by 18%.</p>
+        <a href="https://example.com/method">Read the evaluation method</a><a href="/contact">Contact the team</a>
+        </main></body></html>'''
+        report = answer_audit.analyze('fixture.html', page)
+        self.assertEqual(report['summary']['h1'], 'Understand Clear Product before you adopt it')
+        self.assertGreaterEqual(report['overall'], 70)
+        self.assertEqual(len(report['claims']), 1)
+        self.assertIn('not predictions', report['limits'][0])
+        rendered = answer_audit.render_html(report)
+        self.assertIn('Claim-readiness ledger', rendered)
+        self.assertIn('120-run evaluation', rendered)
+
+    def test_answer_ready_audit_surfaces_access_and_schema_failures(self):
+        page = '''<html><head><meta name="robots" content="noindex"><script type="application/ld+json">{bad}</script></head>
+        <body><main><img src="proof.png"><p>Short page.</p></main></body></html>'''
+        report = answer_audit.analyze('broken.html', page)
+        joined = ' '.join(report['critical_issues'])
+        self.assertIn('noindex', joined)
+        self.assertIn('No primary H1', joined)
+        self.assertIn('JSON-LD', joined)
+        self.assertIn('no alt', joined)
 
     def test_csv_multiline_bom_missing_and_width(self):
         with tempfile.TemporaryDirectory() as tmp:

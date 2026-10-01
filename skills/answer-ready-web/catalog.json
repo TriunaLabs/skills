@@ -1,0 +1,22 @@
+{
+  "title": "Make a page answer-ready",
+  "category": "Web & Content",
+  "tags": ["landing-pages", "seo", "ai-search", "structured-data", "evidence", "accessibility", "html-report"],
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "TriunaLabs",
+  "origin": "Original TriunaLabs workflow derived from a user-selected landing-page concept, then revised against current primary guidance to emphasize people-first content, visible evidence, semantic access, and honest limits.",
+  "requirements": [
+    "Python 3.10+ for deterministic local or URL audits. URL input requires network access. Editing, browser validation, Search Console, and external structured-data tests depend on the tools and authorization available in the host environment."
+  ],
+  "compatibility": {"codex":"format-compatible","claude-code":"format-compatible","other-agents":"untested"},
+  "examples": [
+    "Audit this product page and generate an interactive answer-readiness report with a claim ledger and prioritized fixes.",
+    "Improve this consulting landing page without changing its design system; make the offer, proof, structured data, and next action clearer.",
+    "Create an evidence-backed landing page for this open-source tool using only the supplied repository facts and benchmarks."
+  ],
+  "preview": {
+    "src": "assets/catalog-preview.svg",
+    "alt": "Answer-ready web audit showing a readiness score, evidence coverage, page structure, claim ledger, and prioritized improvements."
+  }
+}

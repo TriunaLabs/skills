@@ -1,0 +1,5 @@
+interface:
+  display_name: "Answer-Ready Web"
+  short_description: "Audit and build evidence-backed landing pages"
+  brand_color: "#146C4B"
+  default_prompt: "Use $answer-ready-web to audit this landing page and produce an evidence-grounded improvement plan."
