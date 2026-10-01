@@ -1,1 +1,19 @@
-{"title":"Create an interface design system","category":"Web & Content","tags":["design-system","design-tokens","ui","typography","color","components","responsive","html-specimen"],"version":"0.1.0","license":"MIT","author":"TriunaLabs","origin":"Original TriunaLabs workflow created to complement Laws of UX with deterministic system generation, semantic tokens, implementation guardrails, validation, and a reviewable specimen. The architecture was informed by public open-core design tools; no third-party code or datasets are included.","requirements":["Python 3.10+ for deterministic generation and validation. Browser inspection is recommended for the standalone specimen. Optional decision providers and remote fonts require their own access and authorization."],"compatibility":{"codex":"format-compatible","claude-code":"format-compatible","other-agents":"untested"},"examples":["Create a calm, trustworthy interface system for a healthcare scheduling application and render the specimen.","Extract the established visual rules from these screenshots, mark inferred tokens, and generate a migration-safe design contract.","Evolve this design system for a denser operations dashboard without changing the brand palette."],"preview":{"src":"assets/catalog-preview.svg","alt":"Interface design system specimen with semantic colors, typography, controls, cards, spacing, and responsive rules."}}
+{
+  "title": "Create an interface design system",
+  "summary": "Generate a coherent visual system with semantic tokens, component states, responsive rules, and agent guidance.",
+  "badges": ["Ready", "Local-first", "CSS + JSON", "HTML specimen"],
+  "category": "Web & Content",
+  "tags": ["design-system", "design-tokens", "ui", "typography", "color", "components", "responsive", "html-specimen"],
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "TriunaLabs",
+  "origin": "Original TriunaLabs workflow created to complement Laws of UX with deterministic system generation, semantic tokens, implementation guardrails, validation, and a reviewable specimen. The architecture was informed by public open-core design tools; no third-party code or datasets are included.",
+  "requirements": ["Python 3.10+ for deterministic generation and validation. Browser inspection is recommended for the standalone specimen. Optional decision providers and remote fonts require their own access and authorization."],
+  "compatibility": {"codex":"format-compatible","claude-code":"format-compatible","other-agents":"untested"},
+  "examples": [
+    "Create a calm, trustworthy interface system for a healthcare scheduling application and render the specimen.",
+    "Extract the established visual rules from these screenshots, mark inferred tokens, and generate a migration-safe design contract.",
+    "Evolve this design system for a denser operations dashboard without changing the brand palette."
+  ],
+  "preview": {"src":"assets/catalog-preview.svg","alt":"Interface design system specimen with semantic colors, typography, controls, cards, spacing, and responsive rules."}
+}

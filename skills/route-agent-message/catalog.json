@@ -1,5 +1,7 @@
 {
   "title": "Route an agent message",
+  "summary": "Route a change or question to every relevant active session and report what was actually delivered.",
+  "badges": ["Ready", "Multi-agent", "HTML + Markdown", "Optional decisions"],
   "category": "Engineering",
   "tags": [
     "agents",

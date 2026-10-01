@@ -41,6 +41,8 @@ class LibraryTests(unittest.TestCase):
         subprocess.run([sys.executable, str(ROOT / 'scripts/build.py')], check=True, capture_output=True, text=True)
         catalog = json.loads((ROOT / 'dist/catalog.json').read_text(encoding='utf-8'))
         self.assertEqual({item['name'] for item in catalog}, {'answer-ready-web', 'create-interface-design-system', 'csv-profile', 'laws-of-ux', 'release-brief', 'route-agent-message'})
+        self.assertTrue(all(item.get('summary') and item.get('badges') and item.get('preview') for item in catalog))
+        self.assertTrue(all(len(item['badges']) <= 4 for item in catalog))
         self.assertFalse((ROOT / 'dist/skills/decision-record').exists())
         self.assertFalse((ROOT / 'dist/skills/reproduce-bug').exists())
         self.assertTrue((ROOT / 'dist/assets/triunalabs-horizontal.svg').is_file())
@@ -49,6 +51,9 @@ class LibraryTests(unittest.TestCase):
         self.assertIn('data-skill="answer-ready-web"', index)
         self.assertIn('data-skill="laws-of-ux"', index)
         self.assertIn('data-skill="create-interface-design-system"', index)
+        app = (ROOT / 'dist/app.js').read_text(encoding='utf-8')
+        self.assertIn('card-preview', app)
+        self.assertIn('s.summary || s.description', app)
 
     def test_invalid_metadata_and_resources_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -79,6 +84,18 @@ class LibraryTests(unittest.TestCase):
             data['preview']['src'] = '../../outside.png'
             meta.write_text(json.dumps(data))
             with self.assertRaisesRegex(ValueError, 'preview'):
+                validate(root)
+
+    def test_catalog_summary_and_badges_are_validated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            shutil.copytree(ROOT / 'skills/create-interface-design-system', root / 'skills/create-interface-design-system')
+            meta = root / 'skills/create-interface-design-system/catalog.json'
+            data = json.loads(meta.read_text(encoding='utf-8'))
+            data['summary'] = 'short'
+            data['badges'] = ['one', 'two', 'three', 'four', 'five']
+            meta.write_text(json.dumps(data), encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'summary'):
                 validate(root)
 
     def test_answer_ready_audit_separates_observation_from_claims(self):

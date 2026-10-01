@@ -1,5 +1,7 @@
 {
   "title": "Profile a CSV",
+  "summary": "Find missing values, type conflicts, duplicates, category drift, structural problems, and review priorities.",
+  "badges": ["Ready", "Local-first", "HTML + Markdown", "Optional Laya"],
   "category": "Data",
   "tags": [
     "csv",

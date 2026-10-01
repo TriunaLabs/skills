@@ -40,12 +40,18 @@ def validate(root=ROOT):
                 raise ValueError(f'{name}: broken or escaping reference {target}')
         meta = json.loads((folder / 'catalog.json').read_text(encoding='utf-8'))
         required = {'title', 'category', 'tags', 'version', 'license', 'author', 'origin', 'requirements', 'compatibility', 'examples'}
-        optional = {'preview', 'visibility'}
+        optional = {'preview', 'visibility', 'summary', 'badges'}
         if not required <= set(meta) or set(meta) - required - optional:
             raise ValueError(f'{name}: metadata keys must be {sorted(required)} with optional {sorted(optional)}')
         for field in ['title', 'category', 'author', 'origin']:
             if not isinstance(meta[field], str) or not meta[field].strip():
                 raise ValueError(f'{name}: invalid {field}')
+        if 'summary' in meta and (not isinstance(meta['summary'], str) or not 20 <= len(meta['summary']) <= 180):
+            raise ValueError(f'{name}: summary must be a string from 20 to 180 characters')
+        if 'badges' in meta:
+            badges = meta['badges']
+            if not isinstance(badges, list) or not 1 <= len(badges) <= 4 or not all(isinstance(x, str) and 1 <= len(x) <= 24 for x in badges):
+                raise ValueError(f'{name}: badges must contain one to four short labels')
         if meta['license'] != 'MIT' or front.get('license') != 'MIT':
             raise ValueError(f'{name}: this library accepts MIT contributions')
         if not re.fullmatch(r'\d+\.\d+\.\d+', meta['version']):

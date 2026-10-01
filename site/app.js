@@ -12,18 +12,32 @@ function render() {
   $('cards').replaceChildren();
   for (const s of matches) {
     const card = el('article', '', 'card');
+    if (s.preview) {
+      const previewButton = el('button', '', 'card-preview');
+      previewButton.type = 'button';
+      previewButton.setAttribute('aria-label', `View ${s.title} preview and details`);
+      const previewImage = document.createElement('img');
+      previewImage.src = `skills/${s.name}/${s.preview.src}`;
+      previewImage.alt = '';
+      previewImage.loading = 'lazy';
+      previewButton.append(previewImage, el('span', 'VIEW EXAMPLE', 'preview-label'));
+      previewButton.addEventListener('click', () => show(s, previewButton));
+      card.append(previewButton);
+    }
+    const content = el('div', '', 'card-content');
     const top = el('div', '', 'card-top');
     const identity = el('div', '', 'card-identity');
     identity.append(el('span', `v${s.version}`, 'version'), el('span', s.category, 'category'));
-    top.append(el('span', ({Planning:'◇',Engineering:'⌘',Documentation:'≡',Data:'▦'})[s.category] || '◇', 'icon'), identity);
-    card.append(top, el('h3', s.title), el('p', s.description));
-    const tags = el('div', '', 'tags');
-    s.tags.forEach(t => tags.append(el('span', t, 'tag')));
+    const maturity = el('span', s.badges?.[0] || 'Ready', 'maturity');
+    top.append(maturity, identity);
+    content.append(top, el('h3', s.title), el('p', s.summary || s.description, 'card-summary'));
+    const badges = el('div', '', 'badges');
+    (s.badges || []).slice(1).forEach(t => badges.append(el('span', t, 'badge')));
     const bottom = el('div', '', 'card-bottom');
     const supported = Object.entries(s.compatibility).filter(([,v])=>v==='format-compatible').map(([k])=>names[k]);
-    bottom.append(el('span', supported.length ? `${supported.join(' · ')} / format-compatible` : 'Runtime compatibility untested', 'status'));
-    const button = el('button', 'Explore skill ↗'); button.type='button'; button.setAttribute('aria-label', `Explore ${s.title}`);
-    button.addEventListener('click', () => show(s, button)); bottom.append(button); card.append(tags, bottom); $('cards').append(card);
+    bottom.append(el('span', supported.length ? supported.join(' · ') : 'Runtime untested', 'status'));
+    const button = el('button', 'Details & install ↗'); button.type='button'; button.setAttribute('aria-label', `Explore ${s.title}`);
+    button.addEventListener('click', () => show(s, button)); bottom.append(button); content.append(badges, bottom); card.append(content); $('cards').append(card);
   }
   $('count').textContent = `${matches.length} of ${skills.length} skills${agent !== 'all' ? ' format-compatible with ' + names[agent] : ''}`;
   $('empty').hidden = matches.length !== 0;

@@ -1,5 +1,7 @@
 {
   "title": "Build a release brief",
+  "summary": "Explain release scope, collaboration, tests, security, supply chain, risk, and operational readiness.",
+  "badges": ["Ready", "Git evidence", "HTML + Markdown", "PDF-ready"],
   "category": "Documentation",
   "tags": ["releases", "git", "provenance", "verification", "security", "supply-chain", "pdf"],
   "version": "0.3.0",

@@ -1,5 +1,7 @@
 {
   "title": "Make a page answer-ready",
+  "summary": "Audit or create a page with clearer answers, visible evidence, sound semantics, and honest decision support.",
+  "badges": ["Ready", "Local or URL", "HTML + JSON", "Evidence ledger"],
   "category": "Web & Content",
   "tags": ["landing-pages", "seo", "ai-search", "structured-data", "evidence", "accessibility", "html-report"],
   "version": "0.1.0",

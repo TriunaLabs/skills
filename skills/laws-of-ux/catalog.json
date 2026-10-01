@@ -1,5 +1,7 @@
 {
   "title": "Review an interface with UX principles",
+  "summary": "Turn observable interface problems into evidence-backed findings, testable fixes, and annotated reports.",
+  "badges": ["Ready", "Local-first", "HTML report", "Before / after"],
   "category": "Web & Content",
   "tags": ["ux", "interface-review", "usability", "annotated-poster", "evidence", "comparison", "html-report"],
   "version": "0.1.0",
