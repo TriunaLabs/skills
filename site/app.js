@@ -2,6 +2,7 @@ const $ = (id) => document.getElementById(id);
 const names = {codex: 'Codex', 'claude-code': 'Claude Code', 'other-agents': 'Other agents'};
 let skills = [];
 let returnFocus;
+let installAgent = 'codex';
 const el = (tag, text, cls) => { const n = document.createElement(tag); n.textContent = text; if (cls) n.className = cls; return n; };
 function render() {
   const query = $('search').value.trim().toLowerCase();
@@ -52,25 +53,37 @@ function show(s, button) {
   $('detail-example').textContent=s.examples.join('\n'); $('detail-instructions').textContent=s.instructions;
   $('source').href=`https://github.com/TriunaLabs/skills/tree/main/skills/${s.name}`;
   $('raw').href=`skills/${s.name}/SKILL.md`;
+  $('install-skill').value=s.name;
+  updateInstall();
+  const params = new URLSearchParams(location.search); params.set('skill', s.name);
+  history.replaceState(null, '', location.pathname + '?' + params + location.hash);
   $('detail').showModal();
 }
 $('close').addEventListener('click', ()=>$('detail').close());
 $('detail').addEventListener('close', ()=>returnFocus?.focus());
-$('detail-install').addEventListener('click', ()=>$('detail').close());
+$('detail-install').addEventListener('click', () => { $('detail').close(); updateInstall(); });
 ['search','agent','category'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
 $('reset').addEventListener('click',()=>{$('search').value='';$('agent').value='all';$('category').value='all';render();});
-function install(agent) {
+function updateInstall() {
+  const agent = installAgent;
+  const skill = $('install-skill').value || 'release-brief';
   document.querySelectorAll('[data-install]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.install===agent)));
-  const data={codex:['Project: .agents/skills/ · Personal folder below.','~/.agents/skills/decision-record/SKILL.md','Start a new session and request $decision-record.','https://learn.chatgpt.com/docs/build-skills'], 'claude-code':['Project: .claude/skills/ · Personal local folder below.','~/.claude/skills/decision-record/SKILL.md','Invoke /decision-record with your task. Cloud sessions use a separate flow.','https://code.claude.com/docs/en/skills'], 'other-agents':['Use your agent’s documented skill directory.','<agent-skill-directory>/decision-record/SKILL.md','No universal install path is assumed. Runtime compatibility is untested.','https://agentskills.io/specification']}[agent];
+  const data={codex:['Project: .agents/skills/ · Personal folder below.',`~/.agents/skills/${skill}/SKILL.md`,`Start a new session and request $${skill}.`,'https://learn.chatgpt.com/docs/build-skills'], 'claude-code':['Project: .claude/skills/ · Personal local folder below.',`~/.claude/skills/${skill}/SKILL.md`,`Invoke /${skill} with your task. Cloud sessions use a separate flow.`,'https://code.claude.com/docs/en/skills'], 'other-agents':['Use your agent’s documented skill directory.',`<agent-skill-directory>/${skill}/SKILL.md`,'No universal install path is assumed. Runtime compatibility is untested.','https://agentskills.io/specification']}[agent];
   $('install-description').textContent=data[0];$('install-path').textContent=data[1];$('invoke').textContent=data[2];$('official').href=data[3];
 }
-document.querySelectorAll('[data-install]').forEach(b=>b.addEventListener('click',()=>install(b.dataset.install)));
-install('codex');
+document.querySelectorAll('[data-install]').forEach(b=>b.addEventListener('click',()=>{installAgent=b.dataset.install;updateInstall();}));
+$('install-skill').addEventListener('change', updateInstall);
+document.querySelectorAll('[data-skill]').forEach(button=>button.addEventListener('click',()=>{const skill=skills.find(s=>s.name===button.dataset.skill);if(skill)show(skill,button);}));
 fetch('catalog.json', {cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('catalog');return r.json();}).then(data=>{
   skills=data;
+  skills.forEach(s=>{const option=el('option',`${s.title} · v${s.version}`);option.value=s.name;$('install-skill').append(option);});
+  $('install-skill').value=skills.some(s=>s.name==='release-brief')?'release-brief':skills[0]?.name||'';
   [...new Set(skills.map(s=>s.category))].sort().forEach(c=>{const o=el('option',c);o.value=c;$('category').append(o);});
   const p=new URLSearchParams(location.search);$('search').value=p.get('q')||'';
   if(['all',...Object.keys(names)].includes(p.get('agent'))) $('agent').value=p.get('agent');
   if([...$('category').options].some(o=>o.value===p.get('category'))) $('category').value=p.get('category');
   render();
+  updateInstall();
+  const requested=skills.find(s=>s.name===p.get('skill'));
+  if(requested) show(requested, document.querySelector(`[data-skill="${requested.name}"]`));
 }).catch(()=>{$('count').textContent='Catalog unavailable';$('error').hidden=false;document.querySelectorAll('.controls input,.controls select,#reset').forEach(e=>e.disabled=true);});

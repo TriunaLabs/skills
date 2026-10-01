@@ -4,17 +4,15 @@ A public library of focused, portable workflows for Claude Code, Codex, and othe
 
 [Browse the catalog](https://triunalabs.github.io/skills/) · [Installation](docs/installation.md) · [Contribute](CONTRIBUTING.md)
 
-## Original starter collection
+## Ready workflows
 
 | Skill | Purpose | Requirements |
 | --- | --- | --- |
-| [Decision record](skills/decision-record/SKILL.md) | Compare options and capture a revisitable decision | Project context |
-| [Reproduce a bug](skills/reproduce-bug/SKILL.md) | Reduce a failure to a repeatable regression check | Project runtime / tests |
 | [Release brief](skills/release-brief/SKILL.md) | Build release-confidence briefs with security, provenance, and PDF-ready reports | Python 3.10+; Git |
 | [Profile a CSV](skills/csv-profile/SKILL.md) | Report structural and missing-value issues | Python 3.10+ |
 | [Route an agent message](skills/route-agent-message/SKILL.md) | Route a change or question to relevant active sessions with delivery receipts | Python 3.10+; session registry and messaging transport |
 
-All starters are original contributions prepared for this library, not exports of personal or installed skills. Version 0.1.0 is a starter release. Format compatibility is not an end-to-end runtime test or a performance claim. See each `catalog.json` for requirements, provenance, and compatibility status.
+These are original contributions prepared for this library, not exports of personal or installed skills. Packages marked `visibility: hidden` remain in source while they are developed, but are excluded from the public catalog and its downloadable build. Format compatibility is not an end-to-end runtime test or a performance claim. See each `catalog.json` for requirements, provenance, and compatibility status.
 
 ## Local development
 

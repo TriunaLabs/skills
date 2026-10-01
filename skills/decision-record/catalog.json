@@ -7,6 +7,7 @@
     "tradeoffs"
   ],
   "version": "0.1.0",
+  "visibility": "hidden",
   "license": "MIT",
   "author": "TriunaLabs",
   "origin": "Original starter authored for this public library; not copied from installed skills.",

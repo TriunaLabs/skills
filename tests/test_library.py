@@ -27,6 +27,15 @@ class LibraryTests(unittest.TestCase):
         records = validate()
         self.assertGreaterEqual(len(records), 1)
         self.assertEqual(len({r['name'] for r in records}), len(records))
+        hidden = {r['name'] for r in records if r.get('visibility') == 'hidden'}
+        self.assertEqual(hidden, {'decision-record', 'reproduce-bug'})
+
+    def test_build_excludes_hidden_skills(self):
+        subprocess.run([sys.executable, str(ROOT / 'scripts/build.py')], check=True, capture_output=True, text=True)
+        catalog = json.loads((ROOT / 'dist/catalog.json').read_text(encoding='utf-8'))
+        self.assertEqual({item['name'] for item in catalog}, {'csv-profile', 'release-brief', 'route-agent-message'})
+        self.assertFalse((ROOT / 'dist/skills/decision-record').exists())
+        self.assertFalse((ROOT / 'dist/skills/reproduce-bug').exists())
 
     def test_invalid_metadata_and_resources_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -40,7 +40,7 @@ def validate(root=ROOT):
                 raise ValueError(f'{name}: broken or escaping reference {target}')
         meta = json.loads((folder / 'catalog.json').read_text(encoding='utf-8'))
         required = {'title', 'category', 'tags', 'version', 'license', 'author', 'origin', 'requirements', 'compatibility', 'examples'}
-        optional = {'preview'}
+        optional = {'preview', 'visibility'}
         if not required <= set(meta) or set(meta) - required - optional:
             raise ValueError(f'{name}: metadata keys must be {sorted(required)} with optional {sorted(optional)}')
         for field in ['title', 'category', 'author', 'origin']:
@@ -50,6 +50,8 @@ def validate(root=ROOT):
             raise ValueError(f'{name}: this library accepts MIT contributions')
         if not re.fullmatch(r'\d+\.\d+\.\d+', meta['version']):
             raise ValueError(f'{name}: use a semantic version')
+        if meta.get('visibility', 'public') not in {'public', 'hidden'}:
+            raise ValueError(f'{name}: visibility must be public or hidden')
         for field in ['tags', 'requirements', 'examples']:
             if not isinstance(meta[field], list) or not meta[field] or not all(isinstance(x, str) and x.strip() for x in meta[field]):
                 raise ValueError(f'{name}: {field} must be a nonempty string array')
