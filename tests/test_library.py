@@ -15,6 +15,7 @@ CSV_SCRIPT_DIR = ROOT / 'skills/csv-profile/scripts'
 ROUTE_SKILL_DIR = ROOT / 'skills/route-agent-message'
 RELEASE_SKILL_DIR = ROOT / 'skills/release-brief'
 ANSWER_SKILL_DIR = ROOT / 'skills/answer-ready-web'
+UX_SKILL_DIR = ROOT / 'skills/laws-of-ux'
 sys.path.insert(0, str(CSV_SCRIPT_DIR))
 spec = importlib.util.spec_from_file_location('profile_csv', CSV_SCRIPT_DIR / 'profile_csv.py')
 module = importlib.util.module_from_spec(spec)
@@ -38,13 +39,14 @@ class LibraryTests(unittest.TestCase):
     def test_build_excludes_hidden_skills(self):
         subprocess.run([sys.executable, str(ROOT / 'scripts/build.py')], check=True, capture_output=True, text=True)
         catalog = json.loads((ROOT / 'dist/catalog.json').read_text(encoding='utf-8'))
-        self.assertEqual({item['name'] for item in catalog}, {'answer-ready-web', 'csv-profile', 'release-brief', 'route-agent-message'})
+        self.assertEqual({item['name'] for item in catalog}, {'answer-ready-web', 'csv-profile', 'laws-of-ux', 'release-brief', 'route-agent-message'})
         self.assertFalse((ROOT / 'dist/skills/decision-record').exists())
         self.assertFalse((ROOT / 'dist/skills/reproduce-bug').exists())
         self.assertTrue((ROOT / 'dist/assets/triunalabs-horizontal.svg').is_file())
         index = (ROOT / 'dist/index.html').read_text(encoding='utf-8')
-        self.assertIn('Four complete, inspectable workflows', index)
+        self.assertIn('Five complete, inspectable workflows', index)
         self.assertIn('data-skill="answer-ready-web"', index)
+        self.assertIn('data-skill="laws-of-ux"', index)
 
     def test_invalid_metadata_and_resources_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -262,6 +264,39 @@ class LibraryTests(unittest.TestCase):
             self.assertNotIn('/*__ROUTE_', html_text)
             self.assertNotIn('https://', html_text)
             self.assertIn('| web-client | yes | relevant | delivered |', markdown_report.read_text(encoding='utf-8'))
+
+    def test_laws_of_ux_validates_renders_and_compares(self):
+        sample = UX_SKILL_DIR / 'assets/sample-findings.json'
+        subprocess.run([sys.executable, str(UX_SKILL_DIR / 'scripts/validate_findings.py'), str(sample), '--poster'], check=True, capture_output=True, text=True)
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            report = root / 'review.html'
+            subprocess.run([sys.executable, str(UX_SKILL_DIR / 'scripts/render_review.py'), str(sample), '-o', str(report)], check=True, capture_output=True, text=True)
+            html = report.read_text(encoding='utf-8')
+            self.assertIn('<!DOCTYPE html>', html)
+            self.assertIn('Verify:', html)
+            self.assertNotIn('<script src=', html)
+            before = json.loads(sample.read_text(encoding='utf-8'))
+            after = json.loads(sample.read_text(encoding='utf-8'))
+            after['findings'] = after['findings'][1:]
+            for index, finding in enumerate(after['findings'], 1): finding['n'] = index
+            before_path, after_path, comparison = root / 'before.json', root / 'after.json', root / 'comparison.json'
+            before_path.write_text(json.dumps(before), encoding='utf-8'); after_path.write_text(json.dumps(after), encoding='utf-8')
+            subprocess.run([sys.executable, str(UX_SKILL_DIR / 'scripts/compare_reviews.py'), str(before_path), str(after_path), '-o', str(comparison)], check=True, capture_output=True, text=True)
+            result = json.loads(comparison.read_text(encoding='utf-8'))
+            self.assertEqual(result['resolved'], ['ux-001'])
+            self.assertEqual(result['summary']['unchanged'], 3)
+
+    def test_laws_of_ux_rejects_unsupported_or_ungrounded_findings(self):
+        data = json.loads((UX_SKILL_DIR / 'assets/sample-findings.json').read_text(encoding='utf-8'))
+        data['findings'][0]['principle'] = 'Magic Law'
+        data['findings'][0]['anchor']['x'] = 2
+        with tempfile.TemporaryDirectory() as tmp:
+            invalid = Path(tmp) / 'invalid.json'; invalid.write_text(json.dumps(data), encoding='utf-8')
+            result = subprocess.run([sys.executable, str(UX_SKILL_DIR / 'scripts/validate_findings.py'), str(invalid)], capture_output=True, text=True)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('unsupported principle', result.stderr)
+            self.assertIn('anchor x and y', result.stderr)
 
     def test_route_agent_message_uses_configurable_decision_provider(self):
         with tempfile.TemporaryDirectory() as tmp:

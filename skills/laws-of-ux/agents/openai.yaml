@@ -1,0 +1,5 @@
+interface:
+  display_name: "Laws of UX Review"
+  short_description: "Evidence-backed UX reviews and teardown posters"
+  brand_color: "#1F6B45"
+  default_prompt: "Use $laws-of-ux to review this interface, cite only principles supported by observable evidence, and make each fix testable."

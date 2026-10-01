@@ -1,0 +1,22 @@
+{
+  "title": "Review an interface with UX principles",
+  "category": "Web & Content",
+  "tags": ["ux", "interface-review", "usability", "annotated-poster", "evidence", "comparison", "html-report"],
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "TriunaLabs",
+  "origin": "User-selected experimental workflow reviewed and enhanced for the TriunaLabs public library with an evidence model, validation, comparison, executable tests, portable references, and an annotated HTML report.",
+  "requirements": [
+    "Python 3.10+ for validation, comparison, and poster rendering. A supplied screenshot, URL, HTML file, interaction trace, or clear surface description is required for grounded findings; URL and browser inspection depend on the tools and permissions available in the host environment."
+  ],
+  "compatibility": {"codex":"format-compatible","claude-code":"format-compatible","other-agents":"untested"},
+  "examples": [
+    "Review this mobile checkout using the smallest set of UX principles that explains the observed problems.",
+    "Turn these grounded findings into an annotated teardown poster and a testable engineering handoff.",
+    "Compare the before and after screenshots, preserving finding IDs and separating resolved, changed, new, and unchanged issues."
+  ],
+  "preview": {
+    "src": "assets/catalog-preview.svg",
+    "alt": "Annotated Laws of UX report with evidence-backed findings connected to regions of a mobile interface."
+  }
+}

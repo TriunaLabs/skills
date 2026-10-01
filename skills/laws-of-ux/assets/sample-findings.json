@@ -1,0 +1,12 @@
+{
+  "schema_version": "2.0",
+  "title": "Laws of UX Review",
+  "subtitle": "Annotated findings for a SaaS pricing page fixture",
+  "source": {"type": "description", "ref": "synthetic pricing-page fixture"},
+  "findings": [
+    {"id":"ux-001","n":1,"side":"left","surface":"pricing page","region":"hero actions","observation":"Four equal hero actions compete for the first decision.","evidence_ref":"fixture#hero-actions","principle":"Hick's Law","mechanism":"Equivalent choices increase decision complexity.","severity":"high","confidence":0.94,"recommendation":"Keep one primary action and demote the rest to links.","verification":["Only one hero action has primary visual weight."],"anchor":{"x":0.5,"y":0.28}},
+    {"id":"ux-002","n":2,"side":"left","surface":"pricing page","region":"plan grid","observation":"Every plan uses the same emphasis, so the recommended option is not distinctive.","evidence_ref":"fixture#plan-grid","principle":"Von Restorff Effect","mechanism":"A visually distinct item is more likely to be noticed and remembered.","severity":"medium","confidence":0.90,"recommendation":"Give one evidence-backed recommendation a distinct treatment.","verification":["A five-second recall check identifies the recommended plan."],"anchor":{"x":0.5,"y":0.70}},
+    {"id":"ux-003","n":3,"side":"right","surface":"pricing page","region":"feature comparison","observation":"Nine peer features appear as one uninterrupted group.","evidence_ref":"fixture#features","principle":"Miller's Law","mechanism":"Chunking reduces the amount of information held as separate items.","severity":"medium","confidence":0.88,"recommendation":"Group related features under three descriptive headings.","verification":["Every feature belongs to one clear group and the groups scan independently."],"anchor":{"x":0.5,"y":0.47}},
+    {"id":"ux-004","n":4,"side":"right","surface":"pricing page","region":"confirmation state","observation":"The completed flow ends with a generic thank-you and no next action.","evidence_ref":"fixture#confirmation","principle":"Peak-End Rule","mechanism":"The ending disproportionately shapes the remembered experience.","severity":"high","confidence":0.86,"recommendation":"Confirm the achieved outcome and offer one relevant next step.","verification":["The completion state names the outcome and exposes one next action."],"anchor":{"x":0.5,"y":0.87}}
+  ]
+}

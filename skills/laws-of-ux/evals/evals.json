@@ -1,0 +1,53 @@
+{
+  "skill": "laws-of-ux",
+  "test_cases": [
+    {
+      "name": "hero_review_caps_laws",
+      "input": "Review this pricing hero. It has four equal buttons: Start free, Book a demo, See pricing, Talk to sales. The recommended plan is not marked.",
+      "assertions": [
+        "Cites Hick's Law for the four equal CTAs and tells the user to keep one primary",
+        "Cites von Restorff or serial position for the unmarked recommended plan, not as a duplicate of the CTA finding",
+        "Does not claim a conversion-rate lift",
+        "Does not list unrelated laws such as Doherty or Parkinson's without evidence"
+      ]
+    },
+    {
+      "name": "poster_uses_renderer",
+      "input": "Turn this landing-page review into an annotated poster like a callout sheet.",
+      "assertions": [
+        "Writes schema 2.0 findings with stable IDs, evidence, one principle, severity, confidence, recommendation, verification, side, and anchor",
+        "Runs scripts/validate_findings.py before rendering",
+        "Runs scripts/render_review.py and returns the HTML file",
+        "Caps the poster at 14 cards and groups overlapping laws into one finding",
+        "Uses a screenshot as the plate when one was provided, otherwise labels the wireframe as neutral"
+      ]
+    },
+    {
+      "name": "compare_preserves_evidence",
+      "input": "Compare this revised checkout with the earlier UX review and show what was resolved or introduced.",
+      "assertions": [
+        "Preserves stable finding IDs for the same issue",
+        "Separates resolved, changed, new, and unchanged findings",
+        "Does not call an issue resolved without new observable evidence",
+        "Runs scripts/compare_reviews.py for the deterministic classification"
+      ]
+    },
+    {
+      "name": "form_postel_and_fitts",
+      "input": "The phone field rejects 555-0100 and (555) 555-0100. The submit button is a 12px text link at the top of a long form.",
+      "assertions": [
+        "Cites Postel's Law for rejecting predictable phone formats and says to accept then normalize",
+        "Cites Fitts's Law for target size and distance, including minimize target distance as a Fitts rule rather than a separate law",
+        "Does not treat the case as a WCAG conformance audit"
+      ]
+    },
+    {
+      "name": "does_not_own_tokens",
+      "input": "Pick a type scale and rename these BEM classes.",
+      "assertions": [
+        "Does not run the Laws of UX review workflow",
+        "Says this skill does not own tokens or CSS naming"
+      ]
+    }
+  ]
+}

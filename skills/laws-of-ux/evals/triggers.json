@@ -1,0 +1,15 @@
+{
+  "skill": "laws-of-ux",
+  "test_cases": [
+    {"input": "Review this checkout against Hick and Fitts", "should_trigger": true},
+    {"input": "Why does this settings page feel heavy?", "should_trigger": true},
+    {"input": "Make an annotated teardown poster of this landing page", "should_trigger": true},
+    {"input": "Where should the primary button go on this form?", "should_trigger": true},
+    {"input": "Compare this redesigned checkout with the earlier UX findings", "should_trigger": true},
+    {"input": "Audit this nav with Miller and Jakob", "should_trigger": true},
+    {"input": "Rename these BEM classes", "should_trigger": false},
+    {"input": "Pick a type scale and color tokens", "should_trigger": false},
+    {"input": "Does this pass WCAG 2.2 AA?", "should_trigger": false},
+    {"input": "Write the API error payload format", "should_trigger": false}
+  ]
+}

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Laws of UX Review</title>
+  <style>
+    :root {
+      --paper: #f6f3ec;
+      --ink: #1c1c1c;
+      --muted: #5e5a52;
+      --line: #d9d3c7;
+      --card: #fffcf7;
+      --green: #1f6b45;
+      --green-soft: #dcecde;
+      --frame: #fbfaf6;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: Georgia, "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+    }
+    .poster {
+      width: min(1100px, 100%);
+      margin: 0 auto;
+      padding: 42px 36px 56px;
+      position: relative;
+    }
+    header { text-align: center; margin-bottom: 28px; }
+    h1 {
+      font-weight: 500;
+      font-size: 64px;
+      line-height: 0.95;
+      letter-spacing: -1.5px;
+      margin: 0;
+    }
+    h1 em {
+      font-style: italic;
+      background: #e4f0d8;
+      padding: 0 0.12em;
+    }
+    .sub {
+      margin: 14px 0 0;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      font-size: 22px;
+      font-weight: 650;
+      letter-spacing: -0.2px;
+    }
+    .url {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      font-size: 13px;
+    }
+    .stage {
+      display: grid;
+      grid-template-columns: 1fr 380px 1fr;
+      gap: 18px;
+      align-items: stretch;
+      min-height: 760px;
+      position: relative;
+    }
+    .col {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 14px;
+      z-index: 2;
+    }
+    .card {
+      display: flex;
+      gap: 10px;
+      background: var(--card);
+      border: 1px solid #e4ded2;
+      border-radius: 10px;
+      padding: 12px 12px 12px 10px;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset;
+    }
+    .num {
+      flex: 0 0 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--green-soft);
+      color: var(--green);
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      font-weight: 700;
+      font-size: 14px;
+      display: grid;
+      place-items: center;
+    }
+    .card h2 {
+      margin: 2px 0 4px;
+      font-size: 15px;
+      line-height: 1.2;
+      font-weight: 650;
+    }
+    .card p {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      font-size: 13px;
+      line-height: 1.35;
+      color: #333;
+    }
+    .card .fix {
+      margin-top: 6px;
+      color: var(--green);
+    }
+    .frame-wrap { position: relative; z-index: 1; }
+    .browser {
+      background: var(--frame);
+      border: 1.5px solid #cfc8bb;
+      border-radius: 16px;
+      min-height: 760px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(40, 36, 28, 0.06);
+    }
+    .chrome {
+      height: 34px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+    }
+    .chrome i {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #e4dfd6; display: block;
+    }
+    .shot { width: 100%; display: block; }
+    .wire { padding: 22px 22px 28px; }
+    .logo {
+      height: 14px; width: 72px; margin: 8px auto 18px;
+      background: #e7e1d6; border-radius: 4px;
+    }
+    .nav { display: flex; justify-content: center; gap: 10px; margin-bottom: 22px; }
+    .nav span { width: 42px; height: 8px; background: #ece7de; border-radius: 4px; }
+    .hero {
+      background: #e7f0df;
+      border-radius: 8px;
+      padding: 28px 22px;
+      margin-bottom: 18px;
+    }
+    .hero b { display: block; height: 12px; background: #c9d7c4; border-radius: 4px; margin: 8px 18px; }
+    .hero .short { width: 62%; margin-left: auto; margin-right: auto; }
+    .hero i { display: block; width: 92px; height: 28px; background: #234; border-radius: 6px; margin: 16px auto 0; }
+    .pills, .cards { display: flex; gap: 10px; justify-content: center; margin: 14px 0; }
+    .pills span, .cards span {
+      width: 72px; height: 72px; border-radius: 50%; background: #e7f0df;
+    }
+    .cards span { border-radius: 8px; height: 108px; background: #f3f7ef; border: 1px solid #e0eadc; }
+    .block {
+      height: 120px; border-radius: 10px; background: #eef4ea; margin: 16px 0;
+    }
+    .rows span {
+      display: block; height: 12px; background: #ece7de; border-radius: 4px; margin: 10px 12px;
+    }
+    svg.links {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 3;
+    }
+    @media (max-width: 860px) {
+      h1 { font-size: 42px; }
+      .stage { grid-template-columns: 1fr; }
+      .browser { min-height: 0; }
+      svg.links { display: none; }
+    }
+    @media print {
+      .poster { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="poster">
+    <header>
+      <h1>Laws of UX <em>Review</em></h1>
+      <p class="sub">Annotated findings for a SaaS landing page</p>
+      <p class="url">https://example.com/pricing</p>
+    </header>
+    <div class="stage" id="stage">
+      <div class="col" id="left">
+      <article class="card" data-n="1" data-x="0.5000" data-y="0.2800">
+        <span class="num">1</span>
+        <div>
+          <h2>Hick&#x27;s Law</h2>
+          <p>Four equal hero CTAs compete for the first decision.</p>
+          <p class="fix">Keep one primary. Demote the rest to text links.</p>
+        </div>
+      </article>
+      <article class="card" data-n="2" data-x="0.6200" data-y="0.3400">
+        <span class="num">2</span>
+        <div>
+          <h2>Fitts&#x27;s Law</h2>
+          <p>The submit control is small and far from the form fields.</p>
+          <p class="fix">Enlarge it and place it on the thumb arc, next to the last field.</p>
+        </div>
+      </article>
+      <article class="card" data-n="3" data-x="0.2800" data-y="0.1200">
+        <span class="num">3</span>
+        <div>
+          <h2>Jakob&#x27;s Law</h2>
+          <p>Logo is not a home link. Nav labels invent new names for standard destinations.</p>
+          <p class="fix">Link the logo home. Use the category&#x27;s usual labels.</p>
+        </div>
+      </article>
+      <article class="card" data-n="4" data-x="0.5000" data-y="0.4200">
+        <span class="num">4</span>
+        <div>
+          <h2>Miller&#x27;s Law</h2>
+          <p>Nine peer feature items sit in one undifferentiated row.</p>
+          <p class="fix">Chunk to three groups. Reveal the rest on demand.</p>
+        </div>
+      </article>
+      <article class="card" data-n="5" data-x="0.3500" data-y="0.5200">
+        <span class="num">5</span>
+        <div>
+          <h2>Proximity</h2>
+          <p>Labels sit far from the inputs they name.</p>
+          <p class="fix">Pair each label with its field. Group related fields.</p>
+        </div>
+      </article></div>
+      <div class="frame-wrap">
+        <div class="browser" id="browser">
+          <div class="chrome"><i></i><i></i><i></i></div>
+          
+          <div class="wire">
+            <div class="logo">logo</div>
+            <div class="nav"><span></span><span></span><span></span><span></span></div>
+            <div class="hero"><b></b><b class="short"></b><i></i></div>
+            <div class="pills"><span></span><span></span><span></span></div>
+            <div class="block"></div>
+            <div class="rows"><span></span><span></span><span></span></div>
+            <div class="cards"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col" id="right">
+      <article class="card" data-n="6" data-x="0.5000" data-y="0.7200">
+        <span class="num">6</span>
+        <div>
+          <h2>Von Restorff</h2>
+          <p>Every plan is emphasized, so none is remembered.</p>
+          <p class="fix">Emphasize one recommended plan. Leave the others quiet.</p>
+        </div>
+      </article>
+      <article class="card" data-n="7" data-x="0.7000" data-y="0.5600">
+        <span class="num">7</span>
+        <div>
+          <h2>Doherty Threshold</h2>
+          <p>Submit gives no acknowledgement inside a few hundred milliseconds.</p>
+          <p class="fix">Optimistic state or an inline pending status on the button.</p>
+        </div>
+      </article>
+      <article class="card" data-n="8" data-x="0.5000" data-y="0.8600">
+        <span class="num">8</span>
+        <div>
+          <h2>Peak-End Rule</h2>
+          <p>The flow ends on a blank thank-you with no next step.</p>
+          <p class="fix">Close on the outcome and one clear action.</p>
+        </div>
+      </article>
+      <article class="card" data-n="9" data-x="0.6200" data-y="0.5800">
+        <span class="num">9</span>
+        <div>
+          <h2>Postel&#x27;s Law</h2>
+          <p>The phone field rejects common formats the user could not predict.</p>
+          <p class="fix">Accept messy input. Normalize it. Show the expected shape.</p>
+        </div>
+      </article>
+      <article class="card" data-n="10" data-x="0.5500" data-y="0.1000">
+        <span class="num">10</span>
+        <div>
+          <h2>Serial position</h2>
+          <p>The key destination is buried in the middle of the nav.</p>
+          <p class="fix">Place durable items first and last.</p>
+        </div>
+      </article></div>
+      <svg class="links" id="links"></svg>
+    </div>
+  </div>
+  <script>
+    function draw() {
+      const stage = document.getElementById("stage");
+      const browser = document.getElementById("browser");
+      const svg = document.getElementById("links");
+      const sr = stage.getBoundingClientRect();
+      const br = browser.getBoundingClientRect();
+      svg.setAttribute("viewBox", `0 0 ${sr.width} ${sr.height}`);
+      svg.innerHTML = "";
+      document.querySelectorAll(".card").forEach((card) => {
+        const cr = card.getBoundingClientRect();
+        const x = parseFloat(card.dataset.x || "0.5");
+        const y = parseFloat(card.dataset.y || "0.5");
+        const onLeft = cr.left < br.left;
+        const x1 = (onLeft ? cr.right : cr.left) - sr.left;
+        const y1 = cr.top + cr.height / 2 - sr.top;
+        const x2 = br.left - sr.left + br.width * x;
+        const y2 = br.top - sr.top + br.height * y;
+        const mid = (x1 + x2) / 2;
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", `M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", "#b7cfc0");
+        path.setAttribute("stroke-width", "1.4");
+        svg.appendChild(path);
+      });
+    }
+    window.addEventListener("load", draw);
+    window.addEventListener("resize", draw);
+  </script>
+</body>
+</html>
