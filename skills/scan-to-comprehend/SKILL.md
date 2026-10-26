@@ -1,34 +1,36 @@
 ---
 name: scan-to-comprehend
-description: "Design or review information-dense websites, articles, and infographics for fast orientation and accurate understanding. Use when readers must scan, find a fact, and then comprehend its context; not for predicting eye movements or assigning a comprehension score."
+description: "Design, restructure, or review information-dense websites, articles, and infographics using task-aware scanning patterns and a clear path to close reading. Use for visual hierarchy, finding a fact, comparing dense modules, and preserving comprehension; not for predicting gaze or assigning a comprehension score."
 license: MIT
 ---
 
 # Scan to Comprehend (S2C)
 
-Help a reader answer three questions in order: **What is this about? Where is the part I need? What does that part mean?** Preserve the information needed to answer the real task. Treat scan patterns as observations that inform design choices, not mandatory paths that every reader follows.
+Build a route from **orientation → finding the relevant part → understanding it in context**. S2C applies eye-tracking observations to content and layout decisions. A scanpath is a sequence of fixations connected by rapid eye movements (saccades); a diagram of a possible path is a design hypothesis, not an instruction that human eyes will obey.
 
-## Use the appropriate path
+The source concept names an F-pattern shield, layer-cake grid, spotted intercept, and lawn-mower track. Use those as memorable design moves, with the more precise definitions and limits in [the pattern map](references/patterns.md). NN/g also describes commitment reading, bypassing, zigzag behavior, and other patterns. Readers can switch patterns as their task changes.
 
-- **Create or revise:** identify the audience's task, the key facts, and what evidence or caveats must remain. Draft an information hierarchy, then produce the requested website, article, or infographic in the user's medium and design system.
-- **Review:** inspect the supplied page, source, image, or URL at its actual viewport or dimensions. Report observable barriers, the likely task impact, a concrete revision, and how to verify it. Distinguish visible evidence from inference.
-- **Structural preflight:** for HTML or Markdown, optionally run `python scripts/s2c_audit.py PATH` or `python scripts/s2c_audit.py --url https://example.com/page`. The audit reports markup signals and review prompts. It cannot observe gaze, measure comprehension, inspect a rendered responsive layout, or prove accessibility. Use `--json` for machine-readable output. URL mode needs network access and should be used only for a URL the user has authorized you to fetch.
+## Route the work
 
-Read [surface guidance](references/surfaces.md) for the requested medium. Read [evidence and limits](references/evidence.md) before making a research or performance claim. The [Triuna Labs card specimen](assets/triuna-spotted-card.html) is an optional branded example, not a required style for other brands.
+1. **Frame the reader task.** Identify the audience, the question they need answered, whether they are browsing, locating a known fact, comparing options, or studying, and the surface, viewport, language direction, and source material. List facts, caveats, and evidence that must survive compression.
+2. **Map content before styling.** Make a compact inventory: each module's question, one-sentence answer, supporting detail, source, priority, and relationship to adjacent modules. Mark what can be skimmed and what requires close reading. See the [S2C blueprint](references/blueprints.md) for a reusable schema and worked Triuna Labs example.
+3. **Choose a likely scan route.** Use the [pattern map](references/patterns.md): support an F-like first pass through prose; use descriptive headings for layer-cake scanning; make task-relevant anchors findable for spotted scanning; keep labels and cells legible during comparison-table lawn-mower scanning. Consider bypassing and commitment reading. Treat decorative zigzag alternation cautiously.
+4. **Design the three passes.** The title and summary orient. Headings, labels, links, numbers, and consistent groups enable targeted finding. Prose, definitions, data labels, sources, and caveats support a close read. Do not remove needed complexity merely to make the first pass short.
+5. **Build the requested artifact.** Read [surface guidance](references/surfaces.md) for website, article, or infographic decisions. Respect the existing brand and medium. Do not force arrows, asymmetry, visual jolts, or bold prefixes into every module.
+6. **Verify the result.** Inspect rendered desktop and mobile views, reading and keyboard order, and text alternatives where relevant. Run a quick-scan, find-a-fact, and explain-the-answer task with representative readers when the outcome matters. Use [evaluation guidance](references/evaluation.md). Cite observations separately from hypotheses and measured outcomes.
 
-## Core decisions
+## Optional structural preflight
 
-1. **Start with the question.** Place an accurate, specific title and a concise answer or overview where a new reader can orient. State units, timeframe, population, and source next to consequential numbers.
-2. **Make the outline useful on its own.** Use descriptive, non-repeating headings and labels. Group related facts; let a reader jump to the right section and then read it in depth. Avoid heading levels chosen merely for visual size.
-3. **Give details a clear home.** Prefer short paragraphs, meaningful lists, direct labels, tables for true comparisons, and captions for visual evidence. Use bold only where it identifies a meaningful distinction. Preserve nuance, definitions, and exceptions instead of compressing them away.
-4. **Connect visuals to meaning.** Place explanations next to the chart, diagram, or metric they explain. Use a visible sequence when order matters. Never rely on color, animation, or an implied gaze path alone to carry meaning.
-5. **Check multiple reading routes.** Can someone understand the overview in a quick scan, find a specific fact, and read the supporting detail? Review desktop and mobile layouts, keyboard and screen-reader order where applicable, and the plain-text or alt-text path for an infographic.
-6. **Validate with people when outcomes matter.** Ask representative readers to find a fact and explain it in their own words. Record task, success criterion, and observations before claiming faster understanding or better comprehension.
+For HTML or Markdown, run `python scripts/s2c_audit.py PATH`, `python scripts/s2c_audit.py --url https://example.com/page`, or `python scripts/s2c_audit.py --staged`. Use `--json` for machine-readable findings. URL mode needs network access and an authorized public URL. The script checks observable markup signals such as headings, generic links, and missing image alternatives. It cannot identify an actual gaze pattern, inspect visual contrast or responsive layout, measure comprehension, or prove accessibility.
 
-Do not turn the source material's “comprehension-to-ink ratio,” F-pattern risk percentages, bounce estimates, 80/100 score, or fixed word and sentence limits into measurements. No such values are validated by this skill. Do not claim a layout forces a fixation or that an automated check predicts reader behavior.
+The [optional pre-commit hook](integrations/pre-commit) runs that structural preflight on staged content. Review existing hooks before installing it. The [Triuna Labs card specimen](assets/triuna-spotted-card.html) is a branded example only.
+
+## Research boundary
+
+Read [evidence and models](references/evidence.md) before explaining the science or proposing eye-tracking tools. AGD predicts attention for free viewing of graphic documents; ScanTextGAN generates text scanpaths for NLP tasks; a reading tracker and WebEyeTrack address different measurement problems. None is an S2C optimizer or evidence that a particular layout improves comprehension. Do not substitute saliency for understanding.
+
+The source material's “comprehension-to-ink ratio,” F-pattern risk percentages, bounce estimates, fixed word or sentence limits, “zero-baseline disruption,” and 80/100 threshold are not validated measures. If an alignment break or high-contrast anchor seems useful, describe it as a design choice and test whether it helps the stated task. Do not claim that a layout forces a fixation.
 
 ## Deliverable
 
-Return the edited artifact or a prioritized review. For a review, include the reader task, surface and viewport, up to the most consequential findings, specific changes, and a verification step for each. State which claims came from observation, research, or a proposed hypothesis.
-
-The optional [pre-commit hook](integrations/pre-commit) can check staged HTML and Markdown for structural warnings. It is opt-in and does not impose a numerical quality gate. Install it only when asked, after reviewing repository policy and existing hooks.
+Return the artifact or a prioritized review with the reader task, content map, pattern hypotheses, specific changes, and verification results or next test. For each review finding, separate **observed feature → likely task effect → proposed change → check**. Say when an effect remains untested.

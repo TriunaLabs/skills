@@ -1,28 +1,29 @@
 # Surface guidance
 
-These patterns are options. Choose them from the reader's task, content, and reading direction; inspect the result rather than treating any scan path as a wireframe.
+Select a layout from the reader's question and the content relationship. Read the [pattern map](patterns.md) when deciding which scanning behavior a design move is meant to support.
 
 ## Websites
 
-- Make the page's purpose and main next action clear near the top. Keep navigation labels distinct and predictable.
-- For dense pages, give each group an informative heading and a short lead that says what the group answers. A contents list or filters can help when topics are numerous.
-- Put labels and units next to metrics. Use tables when values share dimensions, with readable row and column headings. A card grid should retain sensible reading order on narrow screens.
-- Test the first viewport and a deep link to the middle of the page. A reader should find context without relying on the hero.
+- Give the page a recognizable identity, specific thesis, and clear major destinations. Preserve conventions and the existing design system.
+- For dense content, use heading and link labels that answer what a section contains. A contents list, filters, or direct links can shorten a targeted search.
+- For product or data comparisons, use a table when the same dimensions repeat. Keep row and column labels near the cells, distinguish differences, explain jargon, and avoid filler cells. Cards work for heterogeneous modules if each has a consistent internal order.
+- Front-load useful words in headings and summaries; avoid repeated openings that make rows indistinguishable. Do not force asymmetry or alignment changes to “reset” the eye.
+- Test the first viewport, a deep link, and a mobile layout. A reader should recover context from the middle of the page.
 
 ## Articles
 
-- Lead with the central answer or thesis and the scope. Let headings state what each section teaches, so a heading-only pass forms a truthful outline.
-- Keep paragraphs as long as the idea requires. Use lists when items are parallel, and a table of contents for long, varied pieces. Do not force every bullet into a bold prefix or one sentence.
-- Put definitions, methods, sources, qualifications, and examples where readers need them. Summaries should point into detail, not replace it.
-- Test a quick scan and a close read. Ask whether the reader can distinguish a finding from an interpretation.
+- Lead with the central answer or thesis and its scope. Make the heading-only outline truthful and distinct enough for a layer-cake pass.
+- Use paragraphs for reasoning, lists for parallel items, and tables for shared comparison dimensions. Repeated list prefixes may be bypassed; put the discriminating words early without making every bullet artificially short.
+- Place definitions, methods, sources, qualifications, and examples where the reader needs them. Provide deep reading paths for motivated readers instead of stripping detail to optimize a scan.
+- Test a quick scan, a specific fact search, and a close reading of one consequential section.
 
 ## Infographics
 
-- State the takeaway, population, timeframe, and source. Establish a visible sequence if order matters; group comparisons side by side only when the relationship is clear.
-- Label data directly when practical. Give each chart a title that says what it shows, readable axes and units, and text that explains the important comparison.
-- Avoid decorative arrows, sparklines, or high contrast metrics unless they express real data or relationships. Provide a text equivalent for the essential message and data.
-- Review at final display size and on a phone if it will appear there. Ask a reader to explain the takeaway and cite the supporting mark or number.
+- State the takeaway, population, timeframe, unit, and source. Order stages explicitly if sequence matters.
+- Group by real relationships: comparison, sequence, hierarchy, or location. Use directly labeled values and charts. If many panels repeat the same fields, use consistent labels and alignment.
+- Use contrast for meaningful priority, not to manufacture visual “target locks.” A high-contrast number without denominator or caveat can mislead.
+- Provide a text equivalent for essential meaning and data. Review at final display size and phone size if relevant, then ask a reader to explain the takeaway and cite its supporting mark or number.
 
 ## Review format
 
-For each issue: **Observation → Why it may hinder this reader's task → Proposed change → How to check**. Mark uncertain mechanisms as hypotheses. Prefer a small set of high-impact issues over a broad checklist.
+For each issue: **Observation → likely effect on this task → proposed change → how to check**. Label the effect as a hypothesis unless measured with readers. Prioritize the few changes most likely to help the specified task.
