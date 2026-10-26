@@ -1,6 +1,6 @@
 # Research track: element-level attention estimates
 
-This is a proposed, untrained research extension. The public S2C audit does **not** predict fixations, dwell, or scanpaths. Keep any future model output in a separately named evidence layer; never insert its estimates into the structural friction index or label them measured cognitive load.
+This is a proposed, untrained research extension for **calibrated element-level estimates**. The separate [heuristic attention baseline](attention-baseline.md) can render a relative heatmap but does **not** predict fixation probabilities, dwell, or scanpaths. Keep any future model output in a separately named evidence layer; never insert its estimates into the structural friction index or label them measured cognitive load.
 
 ## Corrected dataset premise
 

@@ -1,0 +1,41 @@
+{
+  "schema": "s2c-attention-capture/v1",
+  "frames": [
+    {
+      "id": "desktop-hero",
+      "label": "JobFitIQ desktop first viewport · 1265 × 712",
+      "image": "frame-1.jpg",
+      "provenance": "Reviewer-drawn element boxes on the October 26, 2026 screenshot; colors are sampled approximations, not live DOM styles",
+      "elements": [
+        {"id":"logo","kind":"logo","label":"JobFitIQ logo","x":76,"y":18,"width":190,"height":47},
+        {"id":"nav-how","kind":"link","label":"How it works","x":402,"y":30,"width":85,"height":23,"font_px":14,"foreground":"#425264","background":"#fbfdfc"},
+        {"id":"nav-concept","kind":"link","label":"V10 concept","x":513,"y":30,"width":89,"height":23,"font_px":14,"foreground":"#425264","background":"#fbfdfc"},
+        {"id":"nav-recruiters","kind":"link","label":"For recruiters","x":621,"y":30,"width":102,"height":23,"font_px":14,"foreground":"#425264","background":"#fbfdfc"},
+        {"id":"nav-pricing","kind":"link","label":"Pricing","x":735,"y":30,"width":52,"height":23,"font_px":14,"foreground":"#425264","background":"#fbfdfc"},
+        {"id":"resume-nav","kind":"link","label":"Paul's résumé nav link","x":911,"y":27,"width":99,"height":27,"font_px":14,"foreground":"#061a3c","background":"#fbfdfc"},
+        {"id":"waitlist-nav","kind":"button","label":"Header waitlist button","x":1021,"y":18,"width":152,"height":45,"font_px":14,"foreground":"#ffffff","background":"#061a3c"},
+        {"id":"eyebrow","kind":"text","label":"Hero eyebrow","x":112,"y":176,"width":315,"height":20,"font_px":12,"foreground":"#078451","background":"#f7fbf9"},
+        {"id":"headline","kind":"heading","label":"Turn experience into instant relevance","x":112,"y":221,"width":782,"height":173,"font_px":82,"foreground":"#061a3c","background":"#f7fbf9"},
+        {"id":"description","kind":"text","label":"Product summary","x":112,"y":430,"width":636,"height":90,"font_px":19,"foreground":"#526274","background":"#f7fbf9"},
+        {"id":"waitlist-hero","kind":"button","label":"Hero waitlist button","x":112,"y":554,"width":180,"height":55,"font_px":16,"foreground":"#ffffff","background":"#061a3c"},
+        {"id":"resume-hero","kind":"link","label":"Infographic résumé link","x":316,"y":554,"width":350,"height":56,"font_px":16,"foreground":"#061a3c","background":"#f7fbf9"},
+        {"id":"trust","kind":"text","label":"Feature keywords","x":112,"y":652,"width":478,"height":29,"font_px":12,"foreground":"#75818b","background":"#f7fbf9"}
+      ]
+    },
+    {
+      "id": "mobile-hero",
+      "label": "JobFitIQ mobile first viewport · 375 × 812",
+      "image": "frame-4.jpg",
+      "provenance": "Reviewer-drawn element boxes on the October 26, 2026 screenshot; colors are sampled approximations, not live DOM styles",
+      "elements": [
+        {"id":"logo","kind":"logo","label":"JobFitIQ logo","x":20,"y":19,"width":158,"height":43},
+        {"id":"waitlist-nav","kind":"button","label":"Header waitlist button","x":192,"y":18,"width":153,"height":44,"font_px":13,"foreground":"#ffffff","background":"#061a3c"},
+        {"id":"eyebrow","kind":"text","label":"Hero eyebrow","x":22,"y":146,"width":325,"height":23,"font_px":11,"foreground":"#078451","background":"#f7fbf9"},
+        {"id":"headline","kind":"heading","label":"Turn experience into instant relevance","x":22,"y":187,"width":303,"height":264,"font_px":54,"foreground":"#061a3c","background":"#f7fbf9"},
+        {"id":"description","kind":"text","label":"Product summary","x":22,"y":480,"width":326,"height":178,"font_px":18,"foreground":"#526274","background":"#f7fbf9"},
+        {"id":"waitlist-hero","kind":"button","label":"Hero waitlist button","x":22,"y":689,"width":126,"height":77,"font_px":15,"foreground":"#ffffff","background":"#061a3c"},
+        {"id":"resume-hero","kind":"link","label":"Infographic résumé link","x":174,"y":691,"width":180,"height":68,"font_px":15,"foreground":"#061a3c","background":"#f7fbf9"}
+      ]
+    }
+  ]
+}

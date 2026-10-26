@@ -96,6 +96,25 @@ class S2CVisualizeTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 VISUALIZE.render(payload(), walkthrough, directory)
 
+    def test_attention_overlay_is_optional_labeled_and_self_contained(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = Path(temporary)
+            (directory / "screen.png").write_bytes(PIXEL)
+            (directory / "heat.png").write_bytes(PIXEL)
+            attention = {"schema": "s2c-attention/v1", "model_version": "s2c-heuristic-attention-v1",
+                         "frames": [{"label": "First viewport", "image": "screen.png", "overlay": "heat.png",
+                                     "provenance": "Manual <boxes>", "cues": [{"label": "<headline>",
+                                                                                   "kind": "heading", "weight": 1.2}]}]}
+            result = VISUALIZE.render(payload(), attention=attention, attention_dir=directory)
+            self.assertIn("EXPERIMENTAL / ESTIMATED VISUAL ATTENTION", result)
+            self.assertIn("Show estimated heatmap", result)
+            self.assertIn("Manual &lt;boxes&gt;", result)
+            self.assertNotIn("<headline>", result)
+            self.assertGreaterEqual(result.count("data:image/png;base64,"), 2)
+            attention["frames"][0]["overlay"] = "../heat.png"
+            with self.assertRaisesRegex(ValueError, "inside result directory"):
+                VISUALIZE.render(payload(), attention=attention, attention_dir=directory)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,32 @@
+# Experimental attention baseline
+
+Use this mode only when a user asks for a **visual attention estimate** on a rendered page. It is an untrained rule baseline, not predictive eye tracking. It requires a viewport screenshot and element boxes. The optional DevTools snippet `scripts/s2c_capture.js` exports visible DOM boxes, font sizes, and solid CSS foreground/background colors on a page the user may inspect. Save a matching viewport screenshot as `screenshot.png` beside the downloaded `s2c-capture.json`; edit the screenshot filename in JSON if needed. The script sends no data. Review its boxes before analysis; nested text, gradients, images, overlays, and cropped regions need human correction. Add a `face` element only if a face was explicitly annotated; the snippet does not detect faces.
+
+```bash
+python scripts/s2c_attention.py render s2c-capture.json
+python scripts/s2c_visualize.py audit.json --attention attention.json --output report.html
+```
+
+`render` writes a transparent PNG for each viewport plus `attention.json` in the capture folder. The report embeds the screenshot and overlay and offers a visible on/off control. The capture format is `s2c-attention-capture/v1` with `frames[]`; each frame has `id`, `image`, optional `coordinate_width`/`coordinate_height` for CSS pixel scaling, and `elements[]`. Each element needs `kind`, `x`, `y`, `width`, `height` in capture coordinates; optional fields are `id`, `label`, `font_px`, `foreground`, and `background`. Kinds: `heading`, `text`, `button`, `link`, `image`, `logo`, `face`, `icon`. Colors are solid `#RGB` or `#RRGGBB`. Leave color fields absent when the actual background is unknown. The renderer requires images in the same directory tree and embeds them in the HTML.
+
+## Rule and interpretation
+
+`s2c-heuristic-attention-v1` combines a mild top and left position prior with box area, font size, color contrast when known, and an element-type multiplier. Every coefficient is an **editorial setting**, not a value fitted to eye-tracking evidence. Each element places a two-dimensional Gaussian around its visible box; overlapping spots add together. The output colors are normalized **within each screenshot** and have no probability, time, or person interpretation. A large headline may rank highest because its box and font are large. That is an inspectable design hypothesis, not a measured first fixation. The source structural-friction index and any observed section interaction signals remain separate.
+
+The source snippet cannot recover a text-on-image contrast ratio or infer faces. It includes only the first visible viewport and does not know the reader's goal. A page must be recaptured for each viewport, interaction state, or visual revision. Check box alignment, color assumptions, and whether transient overlays or sticky elements were present before sharing the heatmap.
+
+## Held-out fixation test
+
+When a licensed, consented gaze dataset becomes available, map every fixation to screenshot pixel coordinates and make a separate `s2c-attention-fixations/v1` file:
+
+```json
+{
+  "schema": "s2c-attention-fixations/v1",
+  "trials": [
+    {"frame_id": "first-viewport", "split": "held_out",
+     "fixations": [{"x": 330, "y": 180}, {"x": 290, "y": 220}]}
+  ]
+}
+```
+
+Run `python scripts/s2c_attention.py evaluate s2c-capture.json fixations.json --output evaluation.json`. It compares the fixed full heuristic with a **position-only** map and a **uniform** map using mean log2 fixation-density ratios (bits per fixation). Positive means the full heuristic assigned more density to held-out fixations than the comparator. The result is averaged per trial before aggregation so one long trial cannot silently dominate. All maps use the same 5% uniform floor. This command trusts the supplied `held_out` label; it cannot verify participant, page, or site separation. Keep all trials from one screenshot/site on one side of a split when fitting future coefficients. Report counts, device/task mix, errors by page, and uncertainty before claiming performance. Do not use a hand-picked JobFitIQ screenshot or synthetic fixture as validation.

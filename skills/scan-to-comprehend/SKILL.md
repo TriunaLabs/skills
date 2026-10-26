@@ -1,6 +1,6 @@
 ---
 name: scan-to-comprehend
-description: "Design, restructure, or review information-dense websites, articles, and infographics using task-aware scanning patterns and a clear path to close reading. Use for visual hierarchy, finding a fact, comparing dense modules, and checking source-structure friction; not for predicting gaze or measuring comprehension."
+description: "Design or audit information-dense websites, articles, and infographics using task-aware scanning patterns. Includes a source preflight, visual walkthrough, and optional unvalidated attention heatmap baseline; does not measure gaze or comprehension."
 license: MIT
 ---
 
@@ -25,6 +25,8 @@ For HTML or Markdown, run `python scripts/s2c_audit.py PATH`, `python scripts/s2
 
 When a user gives a URL for a visual audit, follow the [rendered-page walkthrough](references/visual-report.md): capture the actual page at a stated viewport and audit date, record evidence-linked callouts in an artificial report margin, and render a self-contained HTML report with `s2c_visualize.py`. A JSON-only source preflight can use `python scripts/s2c_visualize.py audit.json --output audit.html`. Neither report draws a predicted gaze path or presents the risk index as measured cognitive load. Keep rendered-page observations and reader-task results separate from automatic findings.
 
+When the user asks for an estimated attention heatmap, use the [experimental attention baseline](references/attention-baseline.md) with a real viewport screenshot and reviewed element boxes. It produces a separate, untrained heuristic layer labeled **estimated visual attention**. Do not describe its colors as fixation probability, gaze, dwell, task success, or comprehension. Use its held-out evaluation command only with actual fixation coordinates; no validation result exists merely because a heatmap was rendered.
+
 The [optional pre-commit hook](integrations/pre-commit) runs that structural preflight on staged content. Review existing hooks before installing it. The [Triuna Labs card specimen](assets/triuna-spotted-card.html) is a branded example only.
 
 On a page the user controls, the optional [section interaction probe](references/interaction-signals.md) can add observed viewport exposure, mouse hover, click, and tap counts to the HTML report. It must be started explicitly after the host page's notice or consent step. Keep its session exports separate from gaze predictions and reader-task outcomes; it uses no camera and sends no data by default.
@@ -33,7 +35,7 @@ On a page the user controls, the optional [section interaction probe](references
 
 Read [evidence and models](references/evidence.md) before explaining the science or proposing eye-tracking tools. The infographic studies motivate checking text–graphic integration but do not define universal layout distances or score coefficients. AGD predicts attention for free viewing of graphic documents; ScanTextGAN generates text scanpaths for NLP tasks; a reading tracker and WebEyeTrack address different measurement problems. Camera-based gaze tracking is outside the S2C page-audit workflow. None is an S2C optimizer or evidence that a particular layout improves comprehension. Do not substitute saliency or the source-only risk index for understanding.
 
-For requests to derive element-level attention estimates from gaze datasets, follow the [element-attention research track](references/element-attention-research.md). It defines a reproducible dataset join, task-specific validation, and a possible report contract. This is proposed research, not an implemented predictor; the public audit must not emit fixation probabilities, dwell estimates, or synthetic scanpaths from these rules.
+For requests to derive calibrated element-level attention estimates from gaze datasets, follow the [element-attention research track](references/element-attention-research.md). It defines a reproducible dataset join, task-specific validation, and a possible report contract. The heuristic baseline above is implemented but untrained; the public audit must not emit fixation probabilities, dwell estimates, or synthetic scanpaths from these rules.
 
 The source material's “comprehension-to-ink ratio,” F-pattern risk percentages, bounce estimates, fixed word or sentence limits, “zero-baseline disruption,” and 80/100 threshold are not validated measures. If an alignment break or high-contrast anchor seems useful, describe it as a design choice and test whether it helps the stated task. Do not claim that a layout forces a fixation.
 

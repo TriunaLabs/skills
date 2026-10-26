@@ -64,7 +64,7 @@ def heading_map(headings: list[object]) -> str:
 
 
 def report_html(report: dict[str, object], walkthrough: str = "", audited_on: object = None,
-                signals: str = "") -> str:
+                signals: str = "", attention: str = "") -> str:
     estimate = report.get("estimated_cognitive_load", {})
     if not isinstance(estimate, dict):
         estimate = {}
@@ -95,6 +95,7 @@ def report_html(report: dict[str, object], walkthrough: str = "", audited_on: ob
         {date_line}
         <p class="subtitle">A source check followed by questions for rendered and reader review.</p>
       </header>
+      {attention}
       <section class="summary" aria-label="Structural friction estimate">
         <div class="score"><strong>{escaped(score)}</strong><span>/ 100</span></div>
         <div class="score-context">
@@ -139,6 +140,60 @@ def screenshot_uri(path: Path) -> str:
     else:
         raise ValueError(f"Expected a PNG, JPEG, or WebP screenshot: {path}")
     return f"data:{media};base64,{base64.b64encode(data).decode('ascii')}"
+
+
+def attention_html(result: dict[str, object], asset_dir: Path) -> str:
+    if result.get("schema") != "s2c-attention/v1" or result.get("model_version") != "s2c-heuristic-attention-v1":
+        raise ValueError("Expected S2C heuristic attention v1 result")
+    frames = result.get("frames")
+    if not isinstance(frames, list) or not frames:
+        raise ValueError("Attention result needs frames")
+    rows = []
+    for index, frame in enumerate(frames, 1):
+        if not isinstance(frame, dict):
+            raise ValueError("Attention frame must be an object")
+        paths = []
+        for field in ("image", "overlay"):
+            name = frame.get(field)
+            if not isinstance(name, str) or not name:
+                raise ValueError(f"Attention frame needs {field}")
+            path = (asset_dir / name).resolve()
+            if not path.is_relative_to(asset_dir.resolve()):
+                raise ValueError("Attention image path must stay inside result directory")
+            paths.append(path)
+        cues = frame.get("cues", [])
+        if not isinstance(cues, list):
+            raise ValueError("Attention cues must be an array")
+        cue_rows = []
+        for cue in cues[:6]:
+            if not isinstance(cue, dict):
+                raise ValueError("Attention cue must be an object")
+            cue_rows.append(
+                f"<li><b>{escaped(cue.get('label') or cue.get('kind', 'Element'))}</b> "
+                f"<span>{escaped(cue.get('kind', ''))} · relative rule weight {escaped(cue.get('weight', '?'))}</span></li>"
+            )
+        rows.append(
+            f"<section class='attention-frame'><h3>{escaped(frame.get('label', f'View {index}'))}</h3>"
+            + (f"<p class='attention-provenance'>Captured: {escaped(frame['captured_at'])}</p>" if frame.get("captured_at") else "")
+            + f"<p class='attention-provenance'>Element basis: {escaped(frame.get('provenance', 'unspecified'))}</p>"
+            f"<input class='heat-toggle' type='checkbox' id='heat-{index}' checked>"
+            f"<label class='heat-label' for='heat-{index}'>Show estimated heatmap</label>"
+            f"<div class='heat-view'><img src='{screenshot_uri(paths[0])}' alt='Audited page screenshot'>"
+            f"<img class='heat-overlay' src='{screenshot_uri(paths[1])}' alt=''></div>"
+            "<p class='heat-legend'>Relative intensity within this screenshot: "
+            "<span class='legend-gradient' aria-hidden='true'></span> low → high. Colors are not probabilities.</p>"
+            f"<h4>Highest rule weights</h4><ol class='attention-cues'>{''.join(cue_rows)}</ol></section>"
+        )
+    return (
+        "<section class='attention' aria-label='Estimated visual attention'>"
+        "<p class='eyebrow'>EXPERIMENTAL / ESTIMATED VISUAL ATTENTION</p>"
+        "<h2>Heuristic attention baseline</h2>"
+        "<p>Fixed editorial rules combine position, element area, text size, supplied color contrast, "
+        "and element type. Gaussian spots are blended into a relative heatmap. Face cues require explicit annotation. "
+        "This model has not been fitted to gaze data or validated on held-out fixations. "
+        "It does not measure gaze, dwell, comprehension, or cognitive load.</p>"
+        + "".join(rows) + "</section>"
+    )
 
 
 def walkthrough_html(walkthrough: dict[str, object], asset_dir: Path) -> str:
@@ -296,7 +351,9 @@ def section_signals_html(samples: list[object]) -> str:
 
 
 def render(payload: dict[str, object], walkthrough: dict[str, object] | None = None,
-           asset_dir: Path | None = None, signal_samples: list[object] | None = None) -> str:
+           asset_dir: Path | None = None, signal_samples: list[object] | None = None,
+           attention: dict[str, object] | None = None,
+           attention_dir: Path | None = None) -> str:
     if payload.get("schema_version") != "1.1":
         raise ValueError("Expected S2C audit schema_version 1.1")
     reports = payload.get("reports")
@@ -307,13 +364,14 @@ def render(payload: dict[str, object], walkthrough: dict[str, object] | None = N
             raise ValueError("Each report must be an object")
     walk = walkthrough_html(walkthrough, asset_dir or Path.cwd()) if walkthrough else ""
     signals = section_signals_html(signal_samples) if signal_samples is not None else ""
+    heat = attention_html(attention, attention_dir or Path.cwd()) if attention else ""
     dated = walkthrough.get("audited_on") if walkthrough else payload.get("audited_on")
     if walkthrough and payload.get("audited_on") and payload["audited_on"] != dated:
         raise ValueError("Audit JSON and walkthrough dates do not match")
-    body = report_html(reports[0], walk, dated, signals) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
+    body = report_html(reports[0], walk, dated, signals, heat) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>S2C source audit</title>
+<title>{'S2C visual attention baseline' if attention else 'S2C source audit'}</title>
 <style>
 :root{{color-scheme:light;--ink:#17211b;--muted:#4b5d50;--line:#c9d6ca;--paper:#f7f7f2;--green:#0d6b4e;--soft:#e8f2e9}}
 *{{box-sizing:border-box}}body{{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,sans-serif}}
@@ -342,6 +400,16 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 .margin{{list-style:none;padding:0;margin:0;display:grid;gap:.8rem}}.callout{{border-left:4px solid #b06c00;padding:.3rem 0 .3rem .8rem;background:#fff}}
 .callout.strength{{border-left-color:var(--green)}}.callout:target{{background:var(--soft)}}.callout-type{{text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-size:.7rem;font-weight:700}}
 .callout h4{{margin:.15rem 0 .35rem;font-size:1rem}}.callout p{{font-size:.87rem;margin:.25rem 0;color:var(--muted)}}.callout b{{color:var(--ink)}}
+.attention{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}
+.attention>h2{{font-size:1.55rem}}.attention>p{{max-width:85ch}}
+.attention-frame{{border-top:1px solid var(--line);padding:1.3rem 0}}.attention-frame h3{{font-size:1.1rem;margin:0 0 .25rem}}
+.attention-provenance,.heat-legend{{font-size:.87rem;color:var(--muted)}}
+.heat-toggle{{accent-color:var(--green);margin:.2rem .3rem .8rem 0}}.heat-label{{font-weight:700;cursor:pointer}}
+.heat-view{{position:relative;max-width:850px}}.heat-view img{{display:block;width:100%;height:auto;border:1px solid var(--line)}}
+.heat-view .heat-overlay{{position:absolute;inset:0;border:0}}.heat-toggle:not(:checked)~.heat-view .heat-overlay{{display:none}}
+.legend-gradient{{display:inline-block;width:7rem;height:.7rem;vertical-align:middle;background:linear-gradient(90deg,#165ccd,#00c1da,#ffe137,#e42723)}}
+.attention-cues{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.15rem 1rem;padding-left:1.4rem;max-width:850px}}
+.attention-cues li span{{display:block;font-size:.83rem;color:var(--muted)}}
 .signals{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}.signals h2{{font-size:1.5rem}}
 .signals h3{{font-size:1rem;margin:1.5rem 0 .6rem}}.signal-scroll{{overflow-x:auto}}
 .signal-table{{width:100%;min-width:720px;border-collapse:collapse;text-align:left}}
@@ -351,6 +419,7 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 @media(max-width:700px){{.route,.columns{{grid-template-columns:1fr}}.summary{{align-items:flex-start}}}}
 @media(max-width:850px){{.walk-row{{grid-template-columns:1fr}}.margin{{grid-template-columns:1fr 1fr}}}}
 @media(max-width:540px){{.margin{{grid-template-columns:1fr}}}}
+@media(max-width:700px){{.attention-cues{{grid-template-columns:1fr}}}}
 @media(max-width:450px){{.summary{{display:block}}.score{{margin-bottom:.7rem}}.outline .h5,.outline .h6{{padding-left:3rem}}}}
 </style></head><body><main>{body}</main></body></html>"""
 
@@ -361,11 +430,15 @@ def main() -> int:
     parser.add_argument("--output", required=True, type=Path, help="HTML report to write")
     parser.add_argument("--walkthrough", type=Path, help="Optional rendered-page capture and callout JSON")
     parser.add_argument("--signals", nargs="+", type=Path, help="Optional opt-in section signals session exports")
+    parser.add_argument("--attention", type=Path, help="Optional S2C heuristic attention result JSON")
     args = parser.parse_args()
     payload = json.loads(args.audit_json.read_text(encoding="utf-8"))
     walkthrough = json.loads(args.walkthrough.read_text(encoding="utf-8")) if args.walkthrough else None
     signal_samples = [json.loads(path.read_text(encoding="utf-8")) for path in args.signals] if args.signals else None
-    result = render(payload, walkthrough, args.walkthrough.parent if args.walkthrough else None, signal_samples)
+    attention = json.loads(args.attention.read_text(encoding="utf-8")) if args.attention else None
+    result = render(payload, walkthrough, args.walkthrough.parent if args.walkthrough else None,
+                    signal_samples, attention, args.attention.parent if args.attention else None)
+    result = "\n".join(line.rstrip() for line in result.splitlines()) + "\n"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(result, encoding="utf-8")
     print(args.output)

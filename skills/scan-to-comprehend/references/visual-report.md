@@ -11,6 +11,8 @@ Use this mode when the user gives a public URL and wants to inspect a visual aud
 
 If the page owner has opted into the [section interaction probe](interaction-signals.md), pass its local session exports with `--signals session-a.json session-b.json`. The report adds a separately labeled observed-behavior table and viewport-reach bars. No session data are inferred from the screenshots or source audit.
 
+If a visual attention estimate is requested, follow the [experimental attention baseline](attention-baseline.md), then pass `--attention attention.json` to the same renderer. Its heatmap and cue ranks are a separate, unvalidated heuristic layer; they do not change reviewer callouts or the source index.
+
 ## Walkthrough manifest
 
 Screenshot paths are relative to the manifest directory. Pin coordinates are proportions of the screenshot width and height; `0,0` is its top-left corner. The renderer checks paths stay inside the manifest directory and accepts only PNG, JPEG, and WebP bytes.

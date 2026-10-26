@@ -1,0 +1,251 @@
+{
+  "schema": "s2c-attention/v1",
+  "model_version": "s2c-heuristic-attention-v1",
+  "status": "untrained heuristic; no gaze validation",
+  "frames": [
+    {
+      "id": "desktop-hero",
+      "label": "JobFitIQ desktop first viewport · 1265 × 712",
+      "image": "frame-1.jpg",
+      "overlay": "attention-desktop-hero.png",
+      "width": 1265,
+      "height": 712,
+      "captured_at": null,
+      "provenance": "Reviewer-drawn element boxes on the October 26, 2026 screenshot; colors are sampled approximations, not live DOM styles",
+      "cues": [
+        {
+          "id": "headline",
+          "kind": "heading",
+          "label": "Turn experience into instant relevance",
+          "weight": 1.2502,
+          "position": 0.8422,
+          "area": 1.25,
+          "font": 1.5,
+          "contrast_ratio": 16.48,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "waitlist-nav",
+          "kind": "button",
+          "label": "Header waitlist button",
+          "weight": 0.8748,
+          "position": 0.9785,
+          "area": 0.4357,
+          "font": 0.544,
+          "contrast_ratio": 17.2,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "logo",
+          "kind": "logo",
+          "label": "JobFitIQ logo",
+          "weight": 0.7828,
+          "position": 1.0622,
+          "area": 0.4979,
+          "font": 0.65,
+          "contrast_ratio": null,
+          "contrast_status": "unknown"
+        },
+        {
+          "id": "waitlist-hero",
+          "kind": "button",
+          "label": "Hero waitlist button",
+          "weight": 0.7151,
+          "position": 0.751,
+          "area": 0.5242,
+          "font": 0.65,
+          "contrast_ratio": 17.2,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "description",
+          "kind": "text",
+          "label": "Product summary",
+          "weight": 0.6189,
+          "position": 0.7721,
+          "area": 1.25,
+          "font": 0.7864,
+          "contrast_ratio": 5.99,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "nav-how",
+          "kind": "link",
+          "label": "How it works",
+          "weight": 0.6121,
+          "position": 1.0372,
+          "area": 0.2329,
+          "font": 0.544,
+          "contrast_ratio": 7.84,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "nav-concept",
+          "kind": "link",
+          "label": "V10 concept",
+          "weight": 0.6072,
+          "position": 1.0269,
+          "area": 0.2384,
+          "font": 0.544,
+          "contrast_ratio": 7.84,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "nav-recruiters",
+          "kind": "link",
+          "label": "For recruiters",
+          "weight": 0.6046,
+          "position": 1.0165,
+          "area": 0.2552,
+          "font": 0.544,
+          "contrast_ratio": 7.84,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "resume-nav",
+          "kind": "link",
+          "label": "Paul's résumé nav link",
+          "weight": 0.5931,
+          "position": 0.991,
+          "area": 0.2724,
+          "font": 0.544,
+          "contrast_ratio": 16.84,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "nav-pricing",
+          "kind": "link",
+          "label": "Pricing",
+          "weight": 0.5842,
+          "position": 1.0083,
+          "area": 0.1822,
+          "font": 0.544,
+          "contrast_ratio": 7.84,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "resume-hero",
+          "kind": "link",
+          "label": "Infographic résumé link",
+          "weight": 0.527,
+          "position": 0.7321,
+          "area": 0.7376,
+          "font": 0.65,
+          "contrast_ratio": 16.48,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "eyebrow",
+          "kind": "text",
+          "label": "Hero eyebrow",
+          "weight": 0.5213,
+          "position": 0.9348,
+          "area": 0.4182,
+          "font": 0.45,
+          "contrast_ratio": 4.54,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "trust",
+          "kind": "text",
+          "label": "Feature keywords",
+          "weight": 0.4247,
+          "position": 0.7178,
+          "area": 0.6203,
+          "font": 0.45,
+          "contrast_ratio": 3.82,
+          "contrast_status": "computed from supplied colors"
+        }
+      ]
+    },
+    {
+      "id": "mobile-hero",
+      "label": "JobFitIQ mobile first viewport · 375 × 812",
+      "image": "frame-4.jpg",
+      "overlay": "attention-mobile-hero.png",
+      "width": 375,
+      "height": 812,
+      "captured_at": null,
+      "provenance": "Reviewer-drawn element boxes on the October 26, 2026 screenshot; colors are sampled approximations, not live DOM styles",
+      "cues": [
+        {
+          "id": "headline",
+          "kind": "heading",
+          "label": "Turn experience into instant relevance",
+          "weight": 1.2635,
+          "position": 0.8512,
+          "area": 1.25,
+          "font": 1.5,
+          "contrast_ratio": 16.48,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "waitlist-nav",
+          "kind": "button",
+          "label": "Header waitlist button",
+          "weight": 0.9695,
+          "position": 1.0009,
+          "area": 0.7434,
+          "font": 0.4852,
+          "contrast_ratio": 17.2,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "logo",
+          "kind": "logo",
+          "label": "JobFitIQ logo",
+          "weight": 0.8416,
+          "position": 1.053,
+          "area": 0.7469,
+          "font": 0.65,
+          "contrast_ratio": null,
+          "contrast_status": "unknown"
+        },
+        {
+          "id": "waitlist-hero",
+          "kind": "button",
+          "label": "Hero waitlist button",
+          "weight": 0.7639,
+          "position": 0.7293,
+          "area": 0.8925,
+          "font": 0.5988,
+          "contrast_ratio": 17.2,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "description",
+          "kind": "text",
+          "label": "Product summary",
+          "weight": 0.5949,
+          "position": 0.7503,
+          "area": 1.25,
+          "font": 0.7435,
+          "contrast_ratio": 5.99,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "eyebrow",
+          "kind": "text",
+          "label": "Hero eyebrow",
+          "weight": 0.5931,
+          "position": 0.9404,
+          "area": 0.7834,
+          "font": 0.45,
+          "contrast_ratio": 4.54,
+          "contrast_status": "computed from supplied colors"
+        },
+        {
+          "id": "resume-hero",
+          "kind": "link",
+          "label": "Infographic résumé link",
+          "weight": 0.5293,
+          "position": 0.6916,
+          "area": 1.0025,
+          "font": 0.5988,
+          "contrast_ratio": 16.48,
+          "contrast_status": "computed from supplied colors"
+        }
+      ]
+    }
+  ]
+}
