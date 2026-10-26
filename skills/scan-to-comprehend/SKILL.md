@@ -1,6 +1,6 @@
 ---
 name: scan-to-comprehend
-description: "Design, restructure, or review information-dense websites, articles, and infographics using task-aware scanning patterns and a clear path to close reading. Use for visual hierarchy, finding a fact, comparing dense modules, and preserving comprehension; not for predicting gaze or assigning a comprehension score."
+description: "Design, restructure, or review information-dense websites, articles, and infographics using task-aware scanning patterns and a clear path to close reading. Use for visual hierarchy, finding a fact, comparing dense modules, and checking source-structure friction; not for predicting gaze or measuring comprehension."
 license: MIT
 ---
 
@@ -21,13 +21,13 @@ The source concept names an F-pattern shield, layer-cake grid, spotted intercept
 
 ## Optional structural preflight
 
-For HTML or Markdown, run `python scripts/s2c_audit.py PATH`, `python scripts/s2c_audit.py --url https://example.com/page`, or `python scripts/s2c_audit.py --staged`. Use `--json` for machine-readable findings. URL mode needs network access and an authorized public URL. The script checks observable markup signals such as headings, generic links, and missing image alternatives. It cannot identify an actual gaze pattern, inspect visual contrast or responsive layout, measure comprehension, or prove accessibility.
+For HTML or Markdown, run `python scripts/s2c_audit.py PATH`, `python scripts/s2c_audit.py --url https://example.com/page`, or `python scripts/s2c_audit.py --staged`. Use `--json` for machine-readable findings, narrow strengths, proactive suggestions, and an **experimental structural friction risk index**. Read the [audit contract](references/audit-engine.md) before interpreting or integrating the score. URL mode needs network access and an authorized public URL. The source parser cannot identify an actual gaze pattern, inspect visual contrast or responsive layout, measure cognitive load or comprehension, or prove accessibility.
 
 The [optional pre-commit hook](integrations/pre-commit) runs that structural preflight on staged content. Review existing hooks before installing it. The [Triuna Labs card specimen](assets/triuna-spotted-card.html) is a branded example only.
 
 ## Research boundary
 
-Read [evidence and models](references/evidence.md) before explaining the science or proposing eye-tracking tools. AGD predicts attention for free viewing of graphic documents; ScanTextGAN generates text scanpaths for NLP tasks; a reading tracker and WebEyeTrack address different measurement problems. None is an S2C optimizer or evidence that a particular layout improves comprehension. Do not substitute saliency for understanding.
+Read [evidence and models](references/evidence.md) before explaining the science or proposing eye-tracking tools. The infographic studies motivate checking text–graphic integration but do not define universal layout distances or score coefficients. AGD predicts attention for free viewing of graphic documents; ScanTextGAN generates text scanpaths for NLP tasks; a reading tracker and WebEyeTrack address different measurement problems. None is an S2C optimizer or evidence that a particular layout improves comprehension. Do not substitute saliency or the source-only risk index for understanding.
 
 The source material's “comprehension-to-ink ratio,” F-pattern risk percentages, bounce estimates, fixed word or sentence limits, “zero-baseline disruption,” and 80/100 threshold are not validated measures. If an alignment break or high-contrast anchor seems useful, describe it as a design choice and test whether it helps the stated task. Do not claim that a layout forces a fixation.
 
