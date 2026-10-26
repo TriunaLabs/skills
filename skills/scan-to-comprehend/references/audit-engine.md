@@ -13,8 +13,13 @@ The findings identify source evidence. Strengths are narrow positive observation
 Example command:
 
 ```sh
-python scripts/s2c_audit.py page.html --json
+python scripts/s2c_audit.py page.html --json > audit.json
+python scripts/s2c_visualize.py audit.json --output audit.html
 ```
+
+The optional HTML report visualizes the existing JSON rather than adding new measurements. Its heading map reflects source order; the three reader questions and next checks are prompts for a rendered and reader review, not automatic pass/fail results. Preserve the JSON alongside the HTML when the report is shared so each displayed claim remains inspectable.
+
+For a public URL case study with actual page captures and reviewer callouts, use the [rendered-page walkthrough](visual-report.md). Its visual observations are a separate evidence layer and do not change the source-only index.
 
 An API or MCP wrapper can invoke this same command with a bounded input and return the JSON object. Preserve `schema_version`, `method`, source label, score caveat, strengths, findings, suggestions, and next checks. Do not send private pages to a third-party service by default. The CLI's URL mode refuses redirects, non-public IP addresses, credentials in URLs, non-HTML responses, and responses over 2 MB; an exposed service also needs request authentication, rate limits, outbound network controls, and its own SSRF review.
 

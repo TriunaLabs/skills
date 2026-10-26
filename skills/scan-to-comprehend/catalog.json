@@ -1,10 +1,10 @@
 {
   "title": "Scan to Comprehend",
   "summary": "Apply task-aware scanning patterns to dense content, audit source-structure friction, and test whether readers understand the result.",
-  "badges": ["Ready", "Pattern map", "Audit suggestions", "Source risk index"],
+  "badges": ["Ready", "Pattern map", "Visual walkthrough", "Source risk index"],
   "category": "Web & Content",
   "tags": ["content-design", "information-design", "scannability", "articles", "infographics", "websites", "comprehension"],
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "MIT",
   "author": "TriunaLabs",
   "origin": "Original TriunaLabs workflow developed from a user-supplied Scan-to-Comprehend concept and Triuna Labs blueprint, checked against primary NN/g eye-tracking, visual-attention, and W3C sources. No third-party code or datasets are included.",

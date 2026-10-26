@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.1",
+  "reports": [
+    {
+      "source": "https://jobfitiq.com/ (rendered DOM snapshot)",
+      "format": "html",
+      "headings": [
+        {
+          "level": 1,
+          "text": "Turn experience into instant relevance."
+        },
+        {
+          "level": 2,
+          "text": "Build your role-fit story"
+        },
+        {
+          "level": 2,
+          "text": "From document to decision in three focused steps."
+        },
+        {
+          "level": 3,
+          "text": "Bring your story"
+        },
+        {
+          "level": 3,
+          "text": "Target the opportunity"
+        },
+        {
+          "level": 3,
+          "text": "Make fit visible"
+        },
+        {
+          "level": 2,
+          "text": "Ten seconds first. Evidence when needed."
+        },
+        {
+          "level": 3,
+          "text": "Paul Woll"
+        },
+        {
+          "level": 4,
+          "text": "REQUIREMENT \u2192 EVIDENCE"
+        },
+        {
+          "level": 2,
+          "text": "One evidence graph. Three legitimate r\u00e9sum\u00e9 products."
+        },
+        {
+          "level": 2,
+          "text": "Less guessing. Better conversations."
+        },
+        {
+          "level": 3,
+          "text": "Show the value behind the r\u00e9sum\u00e9."
+        },
+        {
+          "level": 3,
+          "text": "See evidence before the interview."
+        },
+        {
+          "level": 2,
+          "text": "Explore the concept now. Join the waitlist for launch."
+        }
+      ],
+      "findings": [],
+      "estimated_cognitive_load": {
+        "name": "Structural friction risk index",
+        "score": 0,
+        "scale": "0-100; higher means more flagged source-structure friction, not more measured cognitive load",
+        "method": "s2c-source-heuristic-v1",
+        "confidence": "low",
+        "calibration": "Uncalibrated editorial weights; no population norm or validated cognitive-load units.",
+        "components": []
+      },
+      "strengths": [
+        {
+          "code": "labeled_sections",
+          "message": "Source headings provide named entry points."
+        },
+        {
+          "code": "page_heading",
+          "message": "The full page has a level-one heading."
+        },
+        {
+          "code": "descriptive_links",
+          "message": "No generic link labels were detected in source text."
+        },
+        {
+          "code": "image_alternatives",
+          "message": "Every source image has an alt attribute or Markdown alternative; quality still needs review."
+        }
+      ],
+      "suggestions": [],
+      "next_checks": [
+        "Inspect rendered desktop and mobile layout, including visual density and text-graphic proximity.",
+        "Ask representative readers to find a fact and explain it; record task success separately from this index."
+      ],
+      "limit": "Source-only estimate; no rendered-layout, gaze, accessibility, or comprehension measurement."
+    }
+  ]
+}

@@ -67,6 +67,7 @@ function show(s, button) {
   $('detail-example').textContent=s.examples.join('\n'); $('detail-instructions').textContent=s.instructions;
   $('source').href=`https://github.com/TriunaLabs/skills/tree/main/skills/${s.name}`;
   $('raw').href=`skills/${s.name}/SKILL.md`;
+  $('case-study').hidden = s.name !== 'scan-to-comprehend';
   $('install-skill').value=s.name;
   updateInstall();
   const params = new URLSearchParams(location.search); params.set('skill', s.name);

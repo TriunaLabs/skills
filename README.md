@@ -14,7 +14,7 @@ A public library of focused, portable workflows for Claude Code, Codex, and othe
 | [Make a page answer-ready](skills/answer-ready-web/SKILL.md) | Audit or create evidence-backed landing pages for people, search, and retrieval systems | Python 3.10+ |
 | [Review an interface with UX principles](skills/laws-of-ux/SKILL.md) | Produce evidence-backed UX findings, before/after comparisons, and annotated HTML posters | Python 3.10+ |
 | [Create an interface design system](skills/create-interface-design-system/SKILL.md) | Generate semantic tokens, components, responsive rules, agent guidance, and a standalone specimen | Python 3.10+ |
-| [Scan to Comprehend](skills/scan-to-comprehend/SKILL.md) | Design dense content and audit source-structure friction with explained suggestions | Python 3.10+ for optional audit |
+| [Scan to Comprehend](skills/scan-to-comprehend/SKILL.md) | Design dense content, audit source structure, and render evidence-linked page walkthroughs | Python 3.10+ for optional audit/report |
 
 These are original contributions prepared for this library, not exports of personal or installed skills. Packages marked `visibility: hidden` remain in source while they are developed, but are excluded from the public catalog and its downloadable build. Format compatibility is not an end-to-end runtime test or a performance claim. See each `catalog.json` for requirements, provenance, and compatibility status.
 
@@ -26,7 +26,7 @@ The open S2C CLI checks headings, link labels, image alternatives, and table hea
 python skills/scan-to-comprehend/scripts/s2c_audit.py path/to/page.html --json
 ```
 
-The JSON output is suitable for a bounded API or MCP wrapper. See the [audit contract](skills/scan-to-comprehend/references/audit-engine.md), [research boundaries](skills/scan-to-comprehend/references/evidence.md), and [pattern map](skills/scan-to-comprehend/references/patterns.md). The cited research informs what to inspect; the index weights are transparent editorial triage settings, not coefficients from a published model.
+The JSON output is suitable for a bounded API or MCP wrapper. A rendered-page walkthrough can embed actual captures and numbered reviewer callouts in a [self-contained HTML report](site/case-studies/jobfitiq-s2c.html); see the [visual-report workflow](skills/scan-to-comprehend/references/visual-report.md). The [JobFitIQ source-audit JSON](site/case-studies/jobfitiq-s2c.audit.json) remains separate from the rendered observations. See also the [audit contract](skills/scan-to-comprehend/references/audit-engine.md), [research boundaries](skills/scan-to-comprehend/references/evidence.md), and [pattern map](skills/scan-to-comprehend/references/patterns.md). The cited research informs what to inspect; the index weights are transparent editorial triage settings, not coefficients from a published model.
 
 ## Local development
 

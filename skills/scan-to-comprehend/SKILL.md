@@ -23,6 +23,8 @@ The source concept names an F-pattern shield, layer-cake grid, spotted intercept
 
 For HTML or Markdown, run `python scripts/s2c_audit.py PATH`, `python scripts/s2c_audit.py --url https://example.com/page`, or `python scripts/s2c_audit.py --staged`. Use `--json` for machine-readable findings, narrow strengths, proactive suggestions, and an **experimental structural friction risk index**. Read the [audit contract](references/audit-engine.md) before interpreting or integrating the score. URL mode needs network access and an authorized public URL. The source parser cannot identify an actual gaze pattern, inspect visual contrast or responsive layout, measure cognitive load or comprehension, or prove accessibility.
 
+When a user gives a URL for a visual audit, follow the [rendered-page walkthrough](references/visual-report.md): capture the actual page at a stated viewport, record evidence-linked callouts in an artificial report margin, and render a self-contained HTML report with `s2c_visualize.py`. A JSON-only source preflight can use `python scripts/s2c_visualize.py audit.json --output audit.html`. Neither report draws a predicted gaze path or presents the risk index as measured cognitive load. Keep rendered-page observations and reader-task results separate from automatic findings.
+
 The [optional pre-commit hook](integrations/pre-commit) runs that structural preflight on staged content. Review existing hooks before installing it. The [Triuna Labs card specimen](assets/triuna-spotted-card.html) is a branded example only.
 
 ## Research boundary
