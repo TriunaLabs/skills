@@ -24,6 +24,8 @@ S2C is a design synthesis, not a validated score or a deployed eye-tracking mode
 
 ## Information-visualization datasets and model evaluations
 
+For an element-level model research plan, see [element-attention research](element-attention-research.md). Some public datasets already pair gaze with element boxes: the UEyes paper reports detected text/image/face boxes, and Mobile UI Saliency reports manual labels. This supports a possible calibration study, not an S2C prediction on a new page.
+
 - [MASSVIS annotations](https://github.com/massvis/dataset) and [eye-tracking records](https://github.com/massvis/eyetracking) cover 393 eye-tracking target visualizations, with eye movements from 33 participants and memorability/description data. This is a benchmark for studied visualizations, not gaze data for an arbitrary website submitted to S2C. The repositories say source images must be requested and restrict images/annotations to research and educational uses; **do not bundle or redistribute those images in a commercial report or skill asset**.
 - [UMSS, *Scanpath Prediction on Information Visualisations*](https://arxiv.org/abs/2112.02340) predicts element-level saliency over viewing durations and samples scanpaths. Its reported improvements are on its evaluation benchmarks, not evidence that an S2C callout or page edit improves a reader task. S2C does not run UMSS.
 - [Dashboard Vision, *IEEE TVCG*](https://doi.org/10.1109/TVCG.2025.3532497) studies eye movements on dashboards and develops a dashboard saliency model. Dashboard object attention is useful research context for labels, graphics, and layout, but the model is not a general website-comprehension measure. S2C does not run it.

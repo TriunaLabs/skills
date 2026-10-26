@@ -31,6 +31,8 @@ The [optional pre-commit hook](integrations/pre-commit) runs that structural pre
 
 Read [evidence and models](references/evidence.md) before explaining the science or proposing eye-tracking tools. The infographic studies motivate checking text–graphic integration but do not define universal layout distances or score coefficients. AGD predicts attention for free viewing of graphic documents; ScanTextGAN generates text scanpaths for NLP tasks; a reading tracker and WebEyeTrack address different measurement problems. None is an S2C optimizer or evidence that a particular layout improves comprehension. Do not substitute saliency or the source-only risk index for understanding.
 
+For requests to derive element-level attention estimates from gaze datasets, follow the [element-attention research track](references/element-attention-research.md). It defines a reproducible dataset join, task-specific validation, and a possible report contract. This is proposed research, not an implemented predictor; the public audit must not emit fixation probabilities, dwell estimates, or synthetic scanpaths from these rules.
+
 The source material's “comprehension-to-ink ratio,” F-pattern risk percentages, bounce estimates, fixed word or sentence limits, “zero-baseline disruption,” and 80/100 threshold are not validated measures. If an alignment break or high-contrast anchor seems useful, describe it as a design choice and test whether it helps the stated task. Do not claim that a layout forces a fixation.
 
 ## Deliverable
