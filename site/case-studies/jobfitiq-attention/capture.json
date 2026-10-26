@@ -5,6 +5,7 @@
       "id": "desktop-hero",
       "label": "JobFitIQ desktop first viewport · 1265 × 712",
       "image": "frame-1.jpg",
+      "color_basis": "reviewer-sampled approximate screenshot colors",
       "provenance": "Reviewer-drawn element boxes on the October 26, 2026 screenshot; colors are sampled approximations, not live DOM styles",
       "elements": [
         {"id":"logo","kind":"logo","label":"JobFitIQ logo","x":76,"y":18,"width":190,"height":47},
@@ -26,6 +27,7 @@
       "id": "mobile-hero",
       "label": "JobFitIQ mobile first viewport · 375 × 812",
       "image": "frame-4.jpg",
+      "color_basis": "reviewer-sampled approximate screenshot colors",
       "provenance": "Reviewer-drawn element boxes on the October 26, 2026 screenshot; colors are sampled approximations, not live DOM styles",
       "elements": [
         {"id":"logo","kind":"logo","label":"JobFitIQ logo","x":20,"y":19,"width":158,"height":43},

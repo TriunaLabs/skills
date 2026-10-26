@@ -48,6 +48,7 @@
       x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10,
       width: Math.round((right - x) * 10) / 10, height: Math.round((bottom - y) * 10) / 10,
       font_px: Math.max(1, parseFloat(style.fontSize) || 16),
+      font_weight: Math.max(1, parseFloat(style.fontWeight) || 400),
     };
     const foreground = cssHex(style.color), background = solidBackground(node);
     if (foreground && background) Object.assign(entry, { foreground, background });
@@ -59,6 +60,7 @@
       id: "first-viewport", label: document.title || location.hostname,
       captured_at: new Date().toISOString(),
       image: "screenshot.png", coordinate_width: width, coordinate_height: height,
+      color_basis: "computed CSS solid colors; verify effective background and visual states",
       provenance: "Browser DOM boxes and computed CSS colors; image backgrounds and faces were not analyzed",
       elements,
     }],

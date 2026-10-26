@@ -12,6 +12,145 @@
       "height": 712,
       "captured_at": null,
       "provenance": "Reviewer-drawn element boxes on the October 26, 2026 screenshot; colors are sampled approximations, not live DOM styles",
+      "text_contrast_spotcheck": {
+        "criterion": "WCAG 2.2 SC 1.4.3",
+        "color_basis": "reviewer-sampled approximate screenshot colors",
+        "scope": "visible annotated text with supplied solid colors; screening only",
+        "checks": [
+          {
+            "id": "nav-how",
+            "label": "How it works",
+            "kind": "link",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 14,
+            "font_weight": 400,
+            "ratio": 7.839,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "nav-concept",
+            "label": "V10 concept",
+            "kind": "link",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 14,
+            "font_weight": 400,
+            "ratio": 7.839,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "nav-recruiters",
+            "label": "For recruiters",
+            "kind": "link",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 14,
+            "font_weight": 400,
+            "ratio": 7.839,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "nav-pricing",
+            "label": "Pricing",
+            "kind": "link",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 14,
+            "font_weight": 400,
+            "ratio": 7.839,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "resume-nav",
+            "label": "Paul's résumé nav link",
+            "kind": "link",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 14,
+            "font_weight": 400,
+            "ratio": 16.84,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "waitlist-nav",
+            "label": "Header waitlist button",
+            "kind": "button",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 14,
+            "font_weight": 400,
+            "ratio": 17.203,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "eyebrow",
+            "label": "Hero eyebrow",
+            "kind": "text",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 12,
+            "font_weight": 400,
+            "ratio": 4.544,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "headline",
+            "label": "Turn experience into instant relevance",
+            "kind": "heading",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 82,
+            "font_weight": 400,
+            "ratio": 16.483,
+            "threshold": 3.0,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "description",
+            "label": "Product summary",
+            "kind": "text",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 19,
+            "font_weight": 400,
+            "ratio": 5.992,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "waitlist-hero",
+            "label": "Hero waitlist button",
+            "kind": "button",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 16,
+            "font_weight": 400,
+            "ratio": 17.203,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "resume-hero",
+            "label": "Infographic résumé link",
+            "kind": "link",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 16,
+            "font_weight": 400,
+            "ratio": 16.483,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "trust",
+            "label": "Feature keywords",
+            "kind": "text",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 12,
+            "font_weight": 400,
+            "ratio": 3.819,
+            "threshold": 4.5,
+            "status": "below_threshold"
+          }
+        ]
+      },
       "cues": [
         {
           "id": "headline",
@@ -167,6 +306,79 @@
       "height": 812,
       "captured_at": null,
       "provenance": "Reviewer-drawn element boxes on the October 26, 2026 screenshot; colors are sampled approximations, not live DOM styles",
+      "text_contrast_spotcheck": {
+        "criterion": "WCAG 2.2 SC 1.4.3",
+        "color_basis": "reviewer-sampled approximate screenshot colors",
+        "scope": "visible annotated text with supplied solid colors; screening only",
+        "checks": [
+          {
+            "id": "waitlist-nav",
+            "label": "Header waitlist button",
+            "kind": "button",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 13,
+            "font_weight": 400,
+            "ratio": 17.203,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "eyebrow",
+            "label": "Hero eyebrow",
+            "kind": "text",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 11,
+            "font_weight": 400,
+            "ratio": 4.544,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "headline",
+            "label": "Turn experience into instant relevance",
+            "kind": "heading",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 54,
+            "font_weight": 400,
+            "ratio": 16.483,
+            "threshold": 3.0,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "description",
+            "label": "Product summary",
+            "kind": "text",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 18,
+            "font_weight": 400,
+            "ratio": 5.992,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "waitlist-hero",
+            "label": "Hero waitlist button",
+            "kind": "button",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 15,
+            "font_weight": 400,
+            "ratio": 17.203,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          },
+          {
+            "id": "resume-hero",
+            "label": "Infographic résumé link",
+            "kind": "link",
+            "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": 15,
+            "font_weight": 400,
+            "ratio": 16.483,
+            "threshold": 4.5,
+            "status": "at_or_above_threshold"
+          }
+        ]
+      },
       "cues": [
         {
           "id": "headline",

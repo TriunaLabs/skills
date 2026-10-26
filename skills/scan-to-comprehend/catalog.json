@@ -1,10 +1,10 @@
 {
   "title": "Scan to Comprehend",
-  "summary": "Apply task-aware scanning patterns, audit source structure, inspect page signals, and explore a clearly labeled heuristic attention heatmap.",
-  "badges": ["Ready", "Pattern map", "Visual walkthrough", "Attention baseline"],
+  "summary": "Apply task-aware scanning patterns, audit source structure, inspect page signals, and explore a heuristic attention heatmap with a separate WCAG text contrast spot check.",
+  "badges": ["Ready", "Visual walkthrough", "Attention baseline", "Contrast screening"],
   "category": "Web & Content",
   "tags": ["content-design", "information-design", "scannability", "articles", "infographics", "websites", "comprehension"],
-  "version": "0.6.0",
+  "version": "0.7.0",
   "license": "MIT",
   "author": "TriunaLabs",
   "origin": "Original TriunaLabs workflow developed from a user-supplied Scan-to-Comprehend concept and Triuna Labs blueprint, checked against primary NN/g eye-tracking, visual-attention, and W3C sources. No third-party code or datasets are included.",

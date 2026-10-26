@@ -13,6 +13,7 @@ from PIL import Image
 
 VERSION = "s2c-heuristic-attention-v1"
 SCALE = 4
+TEXT_KINDS = {"heading", "text", "button", "link"}
 KIND_WEIGHT = {
     "heading": 1.25, "text": 0.80, "button": 1.20, "link": 0.85,
     "image": 0.90, "logo": 1.00, "face": 1.25, "icon": 0.70,
@@ -46,6 +47,26 @@ def luminance(color: str) -> float:
 def contrast_ratio(foreground: str, background: str) -> float:
     a, b = luminance(foreground), luminance(background)
     return (max(a, b) + 0.05) / (min(a, b) + 0.05)
+
+
+def text_contrast_spotcheck(element: dict) -> dict | None:
+    """Screen WCAG 2.2 SC 1.4.3 using supplied solid colors, never certify a page."""
+    if element["kind"] not in TEXT_KINDS:
+        return None  # Logotypes and non-text graphics require different review.
+    font_px = element.get("font_px")
+    font_weight = element.get("font_weight", 400)
+    threshold = (3.0 if font_px is not None and
+                 (font_px >= 24 or (font_px >= 14 * 96 / 72 and font_weight >= 700))
+                 else 4.5) if font_px is not None else None
+    ratio = (contrast_ratio(element["foreground"], element["background"])
+             if "foreground" in element else None)
+    status = ("needs_review" if ratio is None or threshold is None else
+              "at_or_above_threshold" if ratio >= threshold else "below_threshold")
+    return {"id": str(element.get("id", "")), "label": str(element.get("label", "")),
+            "kind": element["kind"], "criterion": "WCAG 2.2 SC 1.4.3",
+            "font_px": font_px, "font_weight": font_weight if font_px is not None else None,
+            "ratio": round(ratio, 3) if ratio is not None else None,
+            "threshold": threshold, "status": status}
 
 
 def clamp(value: float, lower: float, upper: float) -> float:
@@ -96,6 +117,8 @@ def load_capture(path: Path) -> list[dict]:
                 raise ValueError("Element box must fit within screenshot")
             if "font_px" in element:
                 number(element["font_px"], "font_px", minimum=1)
+            if "font_weight" in element:
+                number(element["font_weight"], "font_weight", minimum=1)
             if ("foreground" in element) != ("background" in element):
                 raise ValueError("Provide both foreground and background, or neither")
             if "foreground" in element:
@@ -105,7 +128,7 @@ def load_capture(path: Path) -> list[dict]:
     return frames
 
 
-def element_strength(element: dict, width: int, height: int) -> dict:
+def element_strength(element: dict, width: int, height: int, *, include_contrast: bool = True) -> dict:
     x, y = float(element["x"]), float(element["y"])
     w, h = float(element["width"]), float(element["height"])
     cx, cy = (x + w / 2) / width, (y + h / 2) / height
@@ -113,7 +136,7 @@ def element_strength(element: dict, width: int, height: int) -> dict:
     area = clamp(5 * math.sqrt(w * h / (width * height)), 0.15, 1.25)
     font = clamp(0.65 + 0.55 * math.log2(float(element.get("font_px", 16)) / 16), 0.45, 1.5)
     contrast = (contrast_ratio(element["foreground"], element["background"])
-                if "foreground" in element else None)
+                if include_contrast and "foreground" in element else None)
     contrast_term = 0.75 if contrast is None else 0.55 + 0.45 * min(1, math.log(contrast) / math.log(7))
     weight = position * (0.30 + 0.25 * area + 0.25 * font + 0.20 * contrast_term) * KIND_WEIGHT[element["kind"]]
     return {"id": str(element.get("id", "")), "kind": element["kind"], "label": str(element.get("label", "")),
@@ -122,7 +145,7 @@ def element_strength(element: dict, width: int, height: int) -> dict:
             "contrast_status": "computed from supplied colors" if contrast is not None else "unknown"}
 
 
-def densities(frame: dict) -> tuple[list[float], list[float], int, int, list[dict]]:
+def densities(frame: dict, *, include_contrast: bool = True) -> tuple[list[float], list[float], int, int, list[dict]]:
     width, height = frame["_width"], frame["_height"]
     gw, gh = math.ceil(width / SCALE), math.ceil(height / SCALE)
     full, position = [0.0] * (gw * gh), [0.0] * (gw * gh)
@@ -133,7 +156,7 @@ def densities(frame: dict) -> tuple[list[float], list[float], int, int, list[dic
             position[gy * gw + gx] = (0.40 + 0.60 * math.exp(-1.7 * cy)) * (0.85 + 0.15 * (1 - cx))
     ranked = []
     for element in frame["elements"]:
-        row = element_strength(element, width, height)
+        row = element_strength(element, width, height, include_contrast=include_contrast)
         ranked.append(row)
         x, y, w, h = (float(element[key]) for key in ("x", "y", "width", "height"))
         cx, cy = x + w / 2, y + h / 2
@@ -184,6 +207,8 @@ def render(capture: Path, output: Path) -> dict:
               "status": "untrained heuristic; no gaze validation", "frames": []}
     for frame in frames:
         full, _, gw, gh, ranked = densities(frame)
+        contrast_checks = [check for element in frame["elements"]
+                           if (check := text_contrast_spotcheck(element)) is not None]
         image_name = f"{output.stem}-{frame['id']}.png"
         save_overlay(full, gw, gh, frame["_width"], frame["_height"], output.parent / image_name)
         result["frames"].append({"id": frame["id"], "label": frame.get("label", frame["id"]),
@@ -191,6 +216,11 @@ def render(capture: Path, output: Path) -> dict:
                                  "width": frame["_width"], "height": frame["_height"],
                                  "captured_at": frame.get("captured_at"),
                                  "provenance": frame.get("provenance", "unspecified element annotations"),
+                                 "text_contrast_spotcheck": {
+                                     "criterion": "WCAG 2.2 SC 1.4.3",
+                                     "color_basis": frame.get("color_basis", "unspecified"),
+                                     "scope": "visible annotated text with supplied solid colors; screening only",
+                                     "checks": contrast_checks},
                                  "cues": ranked})
     output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     return result
@@ -215,8 +245,10 @@ def evaluate(capture: Path, trials_path: Path, output: Path) -> dict:
         if not isinstance(fixations, list) or not fixations:
             raise ValueError("Each trial needs fixations")
         full, position, gw, gh, _ = densities(frame)
-        full, position = probabilities(full), probabilities(position)
-        gains_pos, gains_uniform = [], []
+        without_contrast, _, _, _, _ = densities(frame, include_contrast=False)
+        full, position, without_contrast = (probabilities(values)
+                                            for values in (full, position, without_contrast))
+        gains_pos, gains_uniform, gains_no_contrast = [], [], []
         for fixation in fixations:
             if not isinstance(fixation, dict):
                 raise ValueError("Fixation must be an object")
@@ -226,15 +258,18 @@ def evaluate(capture: Path, trials_path: Path, output: Path) -> dict:
             idx = min(gh - 1, int(y / SCALE)) * gw + min(gw - 1, int(x / SCALE))
             gains_pos.append(math.log2(full[idx] / position[idx]))
             gains_uniform.append(math.log2(full[idx] * len(full)))
+            gains_no_contrast.append(math.log2(full[idx] / without_contrast[idx]))
         rows.append({"frame_id": frame["id"], "fixation_count": len(fixations),
                      "bits_per_fixation_vs_position": round(sum(gains_pos) / len(gains_pos), 4),
-                     "bits_per_fixation_vs_uniform": round(sum(gains_uniform) / len(gains_uniform), 4)})
+                     "bits_per_fixation_vs_uniform": round(sum(gains_uniform) / len(gains_uniform), 4),
+                     "bits_per_fixation_vs_no_contrast": round(sum(gains_no_contrast) / len(gains_no_contrast), 4)})
     result = {"schema": "s2c-attention-evaluation/v1", "model_version": VERSION,
               "split": "user-declared held_out; not independently verified",
               "metric": "mean log2 predicted fixation density ratio; positive beats comparator",
               "trial_count": len(rows), "fixation_count": sum(r["fixation_count"] for r in rows),
               "equal_trial_mean_bits_vs_position": round(sum(r["bits_per_fixation_vs_position"] for r in rows) / len(rows), 4),
               "equal_trial_mean_bits_vs_uniform": round(sum(r["bits_per_fixation_vs_uniform"] for r in rows) / len(rows), 4),
+              "equal_trial_mean_bits_vs_no_contrast": round(sum(r["bits_per_fixation_vs_no_contrast"] for r in rows) / len(rows), 4),
               "trials": rows}
     output.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     return result

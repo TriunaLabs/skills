@@ -111,6 +111,15 @@ class S2CVisualizeTests(unittest.TestCase):
             self.assertIn("Manual &lt;boxes&gt;", result)
             self.assertNotIn("<headline>", result)
             self.assertGreaterEqual(result.count("data:image/png;base64,"), 2)
+            attention["frames"][0]["text_contrast_spotcheck"] = {
+                "color_basis": "Reviewer <estimate>", "checks": [{
+                    "label": "<small text>", "status": "below_threshold",
+                    "ratio": 4.49, "threshold": 4.5}]}
+            result = VISUALIZE.render(payload(), attention=attention, attention_dir=directory)
+            self.assertIn("WCAG text contrast spot check", result)
+            self.assertIn("Below reference threshold", result)
+            self.assertIn("Reviewer &lt;estimate&gt;", result)
+            self.assertNotIn("<small text>", result)
             attention["frames"][0]["overlay"] = "../heat.png"
             with self.assertRaisesRegex(ValueError, "inside result directory"):
                 VISUALIZE.render(payload(), attention=attention, attention_dir=directory)

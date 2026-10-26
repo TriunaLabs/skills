@@ -196,6 +196,62 @@ def attention_html(result: dict[str, object], asset_dir: Path) -> str:
     )
 
 
+def wcag_spotcheck_html(result: dict[str, object]) -> str:
+    """Keep deterministic contrast screening separate from predicted attention."""
+    sections = []
+    for frame in result.get("frames", []):
+        spotcheck = frame.get("text_contrast_spotcheck")
+        if spotcheck is None:
+            continue  # Older attention results remain renderable.
+        checks = spotcheck.get("checks")
+        if not isinstance(checks, list):
+            raise ValueError("Text contrast checks must be an array")
+        rows = []
+        for check in checks:
+            if not isinstance(check, dict) or check.get("status") not in {
+                    "below_threshold", "at_or_above_threshold", "needs_review"}:
+                raise ValueError("Invalid text contrast check")
+            status = {"below_threshold": "Below reference threshold",
+                      "at_or_above_threshold": "At or above on supplied colors",
+                      "needs_review": "Needs color or font review"}[check["status"]]
+            ratio = check.get("ratio")
+            threshold = check.get("threshold")
+            rows.append(
+                f"<tr><th scope='row'>{escaped(check.get('label') or check.get('id') or 'Text element')}</th>"
+                f"<td>{escaped(f'{ratio:.2f}:1' if isinstance(ratio, (int, float)) else '—')}</td>"
+                f"<td>{escaped(f'{threshold:g}:1' if isinstance(threshold, (int, float)) else '—')}</td>"
+                f"<td>{escaped(status)}</td></tr>"
+            )
+        below = sum(check["status"] == "below_threshold" for check in checks)
+        unknown = sum(check["status"] == "needs_review" for check in checks)
+        sections.append(
+            f"<section class='wcag-frame'><h3>{escaped(frame.get('label', 'Viewport'))}</h3>"
+            f"<p><b>{below}</b> below the reference threshold · <b>{unknown}</b> need review "
+            f"· {len(checks)} annotated text elements screened.</p>"
+            f"<p class='attention-provenance'>Color basis: {escaped(spotcheck.get('color_basis', 'unspecified'))}. "
+            "Ratios use supplied solid foreground and background colors; rounded display values were not used for comparisons.</p>"
+            "<div class='wcag-scroll'><table class='wcag-table'><thead><tr><th scope='col'>Text element</th>"
+            "<th scope='col'>Ratio</th><th scope='col'>Reference</th><th scope='col'>Screening result</th>"
+            "</tr></thead><tbody>" + "".join(rows) + "</tbody></table></div></section>"
+        )
+    if not sections:
+        return ""
+    return (
+        "<section class='wcag' aria-label='WCAG text contrast spot check'>"
+        "<p class='eyebrow'>ACCESSIBILITY / TEXT CONTRAST SPOT CHECK</p>"
+        "<h2>Can the highlighted text be read?</h2>"
+        "<p>This screens annotated text against <a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html'>"
+        "WCAG 2.2 SC 1.4.3</a>: 4.5:1 for normal text and 3:1 for large text. "
+        "It is separate from the estimated heatmap and structural friction score. A low-contrast element can "
+        "receive less estimated attention under the current heuristic, but that gaze effect has not been validated.</p>"
+        + "".join(sections)
+        + "<p class='boundary'>These are screening results for visible annotated elements, not WCAG conformance. "
+        "Confirm exact CSS colors, backgrounds, font size and weight, all responsive and interaction states. "
+        "Check meaningful graphics and control indicators under <a href='https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html'>"
+        "SC 1.4.11</a>, plus keyboard focus, labels, reading order, and alternatives manually.</p></section>"
+    )
+
+
 def walkthrough_html(walkthrough: dict[str, object], asset_dir: Path) -> str:
     audit_date(walkthrough.get("audited_on"))
     frames = walkthrough.get("frames")
@@ -364,7 +420,8 @@ def render(payload: dict[str, object], walkthrough: dict[str, object] | None = N
             raise ValueError("Each report must be an object")
     walk = walkthrough_html(walkthrough, asset_dir or Path.cwd()) if walkthrough else ""
     signals = section_signals_html(signal_samples) if signal_samples is not None else ""
-    heat = attention_html(attention, attention_dir or Path.cwd()) if attention else ""
+    heat = (attention_html(attention, attention_dir or Path.cwd()) + wcag_spotcheck_html(attention)
+            if attention else "")
     dated = walkthrough.get("audited_on") if walkthrough else payload.get("audited_on")
     if walkthrough and payload.get("audited_on") and payload["audited_on"] != dated:
         raise ValueError("Audit JSON and walkthrough dates do not match")
@@ -410,6 +467,11 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 .legend-gradient{{display:inline-block;width:7rem;height:.7rem;vertical-align:middle;background:linear-gradient(90deg,#165ccd,#00c1da,#ffe137,#e42723)}}
 .attention-cues{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.15rem 1rem;padding-left:1.4rem;max-width:850px}}
 .attention-cues li span{{display:block;font-size:.83rem;color:var(--muted)}}
+.wcag{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}
+.wcag>h2{{font-size:1.55rem}}.wcag>p{{max-width:85ch}}.wcag a{{color:var(--green)}}
+.wcag-frame{{border-top:1px solid var(--line);padding:1.2rem 0}}.wcag-frame h3{{margin:0 0 .3rem;font-size:1.1rem}}
+.wcag-scroll{{overflow-x:auto}}.wcag-table{{width:100%;min-width:610px;border-collapse:collapse;text-align:left}}
+.wcag-table th,.wcag-table td{{padding:.55rem .7rem;border-bottom:1px solid var(--line);vertical-align:top}}
 .signals{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}.signals h2{{font-size:1.5rem}}
 .signals h3{{font-size:1rem;margin:1.5rem 0 .6rem}}.signal-scroll{{overflow-x:auto}}
 .signal-table{{width:100%;min-width:720px;border-collapse:collapse;text-align:left}}
