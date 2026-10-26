@@ -10,4 +10,6 @@ Define the reader task before evaluating the layout. Use representative readers 
 
 Inspect mobile and desktop if both matter. For HTML, check keyboard order and accessible names. For infographics, test the text alternative or full text equivalent. Record the exact version and viewport used. If collecting actual eye-tracking data, obtain consent and use a calibrated method; a screenshot saliency model or structural CLI output is not a substitute for observed human behavior.
 
+For owned pages, [section interaction signals](interaction-signals.md) can show which modules entered the viewport and received pointer actions during an opt-in session. Treat these as browser behavior, not eye tracking or reading time. Use them to choose what to investigate with the three reader tasks above.
+
 Report raw observations and uncertainty. “Four of five readers found the comparison row” is bounded to those readers and that task. “The design improves comprehension by 30%” requires a valid study design, defined outcome, and measured baseline.

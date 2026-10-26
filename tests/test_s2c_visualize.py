@@ -33,6 +33,31 @@ def payload():
 
 
 class S2CVisualizeTests(unittest.TestCase):
+    def test_opt_in_section_signals_are_a_separate_observed_layer(self):
+        samples = [{
+            "schema": "s2c-section-signals/v1", "capturedOn": "2026-10-26",
+            "pageLabel": "product-v1", "viewport": {"width": 390, "height": 844},
+            "mouseSeen": True,
+            "sections": [{"id": "evidence<script>", "visibleMs": 1200,
+                          "hoverMs": 300, "mouseClicks": 1, "touchTaps": 0}],
+        }, {
+            "schema": "s2c-section-signals/v1", "capturedOn": "2026-10-27",
+            "pageLabel": "product-v1", "viewport": {"width": 390, "height": 844},
+            "mouseSeen": False,
+            "sections": [{"id": "evidence<script>", "visibleMs": 0,
+                          "hoverMs": 0, "mouseClicks": 0, "touchTaps": 1}],
+        }]
+        result = VISUALIZE.render(payload(), signal_samples=samples)
+        self.assertIn("OPT-IN PAGE OBSERVATIONS", result)
+        self.assertIn("evidence&lt;script&gt;", result)
+        self.assertNotIn("evidence<script>", result)
+        self.assertIn("1/2", result)
+        self.assertIn("1.2 s", result)
+        self.assertIn("Hover and clicks are separate pointer signals", result)
+        samples[1]["pageLabel"] = "other-page"
+        with self.assertRaisesRegex(ValueError, "share one pageLabel"):
+            VISUALIZE.render(payload(), signal_samples=samples)
+
     def test_source_report_escapes_page_text_and_shows_action(self):
         result = VISUALIZE.render(payload())
         self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", result)

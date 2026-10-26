@@ -20,7 +20,7 @@ S2C is a design synthesis, not a validated score or a deployed eye-tracking mode
 | [AGD / WebSaliency, arXiv:2407.02439](https://arxiv.org/abs/2407.02439) | A two-stage model predicts fixation-density maps and scanpaths during *free viewing* of graphic documents. It uses component- and layout-aware features and inverse reinforcement learning; the authors collected gaze from 41 people viewing 450 webpages. | Research context for component saliency and temporal attention modeling. A free-viewing prediction is not a task-specific comprehension test or a guarantee of first fixation. |
 | [ScanTextGAN, arXiv:2302.05721](https://arxiv.org/abs/2302.05721) | Generates synthetic scanpaths over text and evaluates their value as signals in downstream NLP tasks. | Illustrates gaze modeling. It does not prescribe website, article, or infographic layouts. |
 | [See Where You Read, arXiv:2409.19454](https://arxiv.org/abs/2409.19454) | A gaze and LLM system tracks reading location across linear and jump reading. | Relevant to reading-location detection, not proof that a given layout improves understanding. |
-| [WebEyeTrack, arXiv:2508.19544](https://arxiv.org/abs/2508.19544) | Browser-based gaze estimation with on-device personalization. | A potential measurement approach requiring calibration, consent, and error analysis; not integrated into this skill. |
+| [WebEyeTrack, arXiv:2508.19544](https://arxiv.org/abs/2508.19544) | Browser-based gaze estimation with on-device personalization. | Research context only. Camera-based gaze tracking is excluded from the S2C page-audit workflow. |
 
 ## Information-visualization datasets and model evaluations
 
@@ -32,6 +32,8 @@ For an element-level model research plan, see [element-attention research](eleme
 - [Lopez-Cardona et al., *A Comparative Study of Scanpath Models in Graph-Based Visualization*](https://arxiv.org/abs/2503.24160) compares human and modeled scanpaths for graph-analysis questions with 40 participants. Task complexity and graph structure matter in that setting; this does not supply coefficients for a webpage risk score.
 
 An S2C rendered-page walkthrough may place **reviewer callouts** beside actual screenshots. Their coordinates locate observations, not predicted fixations. Only a separately identified, consented eye-tracking study should display gaze paths or fixation maps as measured data; model predictions need their own model, dataset, task, and validation labels.
+
+The optional [section interaction probe](interaction-signals.md) observes viewport exposure and pointer actions on an owned page, without a camera. [Huang, White, and Dumais](https://www.microsoft.com/en-us/research/publication/no-clicks-no-problem-using-cursor-movements-to-understand-and-improve-search-2/) found useful cursor–gaze relationships on search result pages; that task-specific finding does not make a stationary cursor or section hover a fixation measure on arbitrary websites. Keep interaction observations separate from predicted saliency and reader-task results.
 
 The supplied [arXiv:2403.07834](https://arxiv.org/abs/2403.07834) is a review of eye tracking in **medical image analysis**, so it is not evidence for a web-layout rule. The supplied [arXiv:2305.11345](https://arxiv.org/abs/2305.11345) is a general website-usability overview; it does not validate “zero-baseline” attention capture. “Component dominance” and deliberate alignment breaks are S2C design hypotheses unless tested for the task and audience.
 

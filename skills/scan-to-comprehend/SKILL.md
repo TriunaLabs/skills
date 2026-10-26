@@ -27,9 +27,11 @@ When a user gives a URL for a visual audit, follow the [rendered-page walkthroug
 
 The [optional pre-commit hook](integrations/pre-commit) runs that structural preflight on staged content. Review existing hooks before installing it. The [Triuna Labs card specimen](assets/triuna-spotted-card.html) is a branded example only.
 
+On a page the user controls, the optional [section interaction probe](references/interaction-signals.md) can add observed viewport exposure, mouse hover, click, and tap counts to the HTML report. It must be started explicitly after the host page's notice or consent step. Keep its session exports separate from gaze predictions and reader-task outcomes; it uses no camera and sends no data by default.
+
 ## Research boundary
 
-Read [evidence and models](references/evidence.md) before explaining the science or proposing eye-tracking tools. The infographic studies motivate checking text–graphic integration but do not define universal layout distances or score coefficients. AGD predicts attention for free viewing of graphic documents; ScanTextGAN generates text scanpaths for NLP tasks; a reading tracker and WebEyeTrack address different measurement problems. None is an S2C optimizer or evidence that a particular layout improves comprehension. Do not substitute saliency or the source-only risk index for understanding.
+Read [evidence and models](references/evidence.md) before explaining the science or proposing eye-tracking tools. The infographic studies motivate checking text–graphic integration but do not define universal layout distances or score coefficients. AGD predicts attention for free viewing of graphic documents; ScanTextGAN generates text scanpaths for NLP tasks; a reading tracker and WebEyeTrack address different measurement problems. Camera-based gaze tracking is outside the S2C page-audit workflow. None is an S2C optimizer or evidence that a particular layout improves comprehension. Do not substitute saliency or the source-only risk index for understanding.
 
 For requests to derive element-level attention estimates from gaze datasets, follow the [element-attention research track](references/element-attention-research.md). It defines a reproducible dataset join, task-specific validation, and a possible report contract. This is proposed research, not an implemented predictor; the public audit must not emit fixation probabilities, dwell estimates, or synthetic scanpaths from these rules.
 

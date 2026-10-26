@@ -10,6 +10,7 @@ import html
 import json
 from pathlib import Path
 import re
+from statistics import median
 from urllib.parse import urlsplit
 
 
@@ -62,7 +63,8 @@ def heading_map(headings: list[object]) -> str:
     return "<ol class='outline'>" + "".join(rows) + "</ol>"
 
 
-def report_html(report: dict[str, object], walkthrough: str = "", audited_on: object = None) -> str:
+def report_html(report: dict[str, object], walkthrough: str = "", audited_on: object = None,
+                signals: str = "") -> str:
     estimate = report.get("estimated_cognitive_load", {})
     if not isinstance(estimate, dict):
         estimate = {}
@@ -110,6 +112,7 @@ def report_html(report: dict[str, object], walkthrough: str = "", audited_on: ob
         <section><span class="step">03 / UNDERSTAND</span><h2>What does it mean?</h2><p>Ask a reader to explain the answer and its caveats. This audit cannot measure that.</p></section>
       </div>
       {walkthrough}
+      {signals}
       <div class="columns">
         <section><h2>Source heading map</h2>{heading_map(headings)}</section>
         <section><h2>Flagged issues</h2>{item_list(findings, 'No issue flagged by the source checklist.')}
@@ -201,8 +204,99 @@ def walkthrough_html(walkthrough: dict[str, object], asset_dir: Path) -> str:
     )
 
 
+def section_signals_html(samples: list[object]) -> str:
+    """Summarize opt-in page observations without treating them as gaze or reading."""
+    if not samples:
+        raise ValueError("Provide at least one section signals export")
+    groups: dict[str, list[dict[str, object]]] = {"Narrow (<768 px)": [], "Wide (768+ px)": []}
+    labels = set()
+    dates = set()
+    for sample in samples:
+        if not isinstance(sample, dict) or sample.get("schema") != "s2c-section-signals/v1":
+            raise ValueError("Expected an S2C section signals v1 export")
+        viewport = sample.get("viewport")
+        sections = sample.get("sections")
+        if (not isinstance(viewport, dict) or isinstance(viewport.get("width"), bool)
+                or not isinstance(viewport.get("width"), (int, float)) or viewport["width"] <= 0):
+            raise ValueError("Section signals need a valid viewport width")
+        if not isinstance(sections, list) or not sections:
+            raise ValueError("Section signals need a non-empty sections array")
+        if not isinstance(sample.get("mouseSeen"), bool):
+            raise ValueError("Section signals need mouseSeen")
+        audit_date(sample.get("capturedOn"))
+        dates.add(sample["capturedOn"])
+        labels.add(str(sample.get("pageLabel", "")))
+        seen = set()
+        for section in sections:
+            if (not isinstance(section, dict) or not isinstance(section.get("id"), str)
+                    or not section["id"].strip() or section["id"] in seen):
+                raise ValueError("Section signals need unique section IDs per export")
+            seen.add(section["id"])
+            for field in ("visibleMs", "hoverMs", "mouseClicks", "touchTaps"):
+                value = section.get(field)
+                if not isinstance(value, (int, float)) or isinstance(value, bool) or not 0 <= value < 86_400_000:
+                    raise ValueError(f"Invalid section signal: {field}")
+            if (section["hoverMs"] > section["visibleMs"] or
+                    (section["hoverMs"] > 0 and not sample["mouseSeen"])):
+                raise ValueError("Hover time must be visible time from a mouse session")
+            if not isinstance(section["mouseClicks"], int) or not isinstance(section["touchTaps"], int):
+                raise ValueError("Pointer activation counts must be integers")
+        group = "Narrow (<768 px)" if viewport["width"] < 768 else "Wide (768+ px)"
+        groups[group].append(sample)
+    if len(labels) != 1:
+        raise ValueError("Section signals must share one pageLabel")
+    if len(samples) > 1 and not next(iter(labels)):
+        raise ValueError("Multiple section signals exports need a shared nonempty pageLabel")
+
+    tables = []
+    for name, members in groups.items():
+        if not members:
+            continue
+        ids = sorted({section["id"] for sample in members for section in sample["sections"]})
+        rows = []
+        for section_id in ids:
+            present = [next((section for section in sample["sections"] if section["id"] == section_id), None)
+                       for sample in members]
+            paired = [(sample, section) for sample, section in zip(members, present) if section is not None]
+            exposed = [section["visibleMs"] for _, section in paired if section["visibleMs"] > 0]
+            mouse = [section for sample, section in paired if sample["mouseSeen"]]
+            reached = len(exposed)
+            denominator = len(paired)
+            reach_pct = 100 * reached / denominator
+            median_seconds = f"{median(exposed) / 1000:.1f} s" if exposed else "—"
+            hovered = sum(section["hoverMs"] > 0 for section in mouse)
+            hover_display = f"{hovered}/{len(mouse)}" if mouse else "—"
+            mouse_clicks = sum(section["mouseClicks"] for _, section in paired)
+            touch_taps = sum(section["touchTaps"] for _, section in paired)
+            rows.append(
+                f"<tr><th scope='row'>{escaped(section_id)}</th>"
+                f"<td>{reached}/{denominator}<span class='mini-track' aria-hidden='true'><i style='width:{reach_pct:.1f}%'></i></span></td>"
+                f"<td>{median_seconds}</td><td>{hover_display}</td>"
+                f"<td>{mouse_clicks}</td><td>{touch_taps}</td></tr>"
+            )
+        tables.append(
+            f"<h3>{escaped(name)} · {len(members)} session export(s)</h3>"
+            "<div class='signal-scroll'><table class='signal-table'><thead><tr>"
+            "<th scope='col'>Section</th><th scope='col'>Viewport reach</th>"
+            "<th scope='col'>Median visible time*</th><th scope='col'>Mouse hover sessions</th>"
+            "<th scope='col'>Mouse clicks</th><th scope='col'>Touch taps</th>"
+            "</tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>"
+        )
+    span = min(dates) if len(dates) == 1 else f"{min(dates)} to {max(dates)}"
+    return (
+        "<section class='signals' aria-label='Observed section behavior'>"
+        "<p class='eyebrow'>OPT-IN PAGE OBSERVATIONS</p><h2>Which sections entered the viewport?</h2>"
+        f"<p><b>Page label:</b> {escaped(next(iter(labels)) or 'Unlabeled')} · <b>Captured:</b> {escaped(span)}. "
+        "Session exports are not unique visitors. *Median visible time uses reached sessions only.</p>"
+        + "".join(tables)
+        + "<p class='boundary'>Visible time means foreground viewport exposure while the page was recently active. "
+        "Hover and clicks are separate pointer signals. None measures gaze, reading, understanding, or cognitive load. "
+        "Compare the same section IDs and reader task across versions before drawing a design conclusion.</p></section>"
+    )
+
+
 def render(payload: dict[str, object], walkthrough: dict[str, object] | None = None,
-           asset_dir: Path | None = None) -> str:
+           asset_dir: Path | None = None, signal_samples: list[object] | None = None) -> str:
     if payload.get("schema_version") != "1.1":
         raise ValueError("Expected S2C audit schema_version 1.1")
     reports = payload.get("reports")
@@ -212,10 +306,11 @@ def render(payload: dict[str, object], walkthrough: dict[str, object] | None = N
         if not isinstance(report, dict):
             raise ValueError("Each report must be an object")
     walk = walkthrough_html(walkthrough, asset_dir or Path.cwd()) if walkthrough else ""
+    signals = section_signals_html(signal_samples) if signal_samples is not None else ""
     dated = walkthrough.get("audited_on") if walkthrough else payload.get("audited_on")
     if walkthrough and payload.get("audited_on") and payload["audited_on"] != dated:
         raise ValueError("Audit JSON and walkthrough dates do not match")
-    body = report_html(reports[0], walk, dated) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
+    body = report_html(reports[0], walk, dated, signals) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>S2C source audit</title>
@@ -247,6 +342,12 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 .margin{{list-style:none;padding:0;margin:0;display:grid;gap:.8rem}}.callout{{border-left:4px solid #b06c00;padding:.3rem 0 .3rem .8rem;background:#fff}}
 .callout.strength{{border-left-color:var(--green)}}.callout:target{{background:var(--soft)}}.callout-type{{text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-size:.7rem;font-weight:700}}
 .callout h4{{margin:.15rem 0 .35rem;font-size:1rem}}.callout p{{font-size:.87rem;margin:.25rem 0;color:var(--muted)}}.callout b{{color:var(--ink)}}
+.signals{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}.signals h2{{font-size:1.5rem}}
+.signals h3{{font-size:1rem;margin:1.5rem 0 .6rem}}.signal-scroll{{overflow-x:auto}}
+.signal-table{{width:100%;min-width:720px;border-collapse:collapse;text-align:left}}
+.signal-table th,.signal-table td{{padding:.7rem;border-bottom:1px solid var(--line);vertical-align:top}}
+.signal-table th{{font-weight:700}}.mini-track{{display:block;width:100%;height:5px;background:#e3e9e2;margin-top:.35rem}}
+.mini-track i{{display:block;height:100%;background:var(--green)}}
 @media(max-width:700px){{.route,.columns{{grid-template-columns:1fr}}.summary{{align-items:flex-start}}}}
 @media(max-width:850px){{.walk-row{{grid-template-columns:1fr}}.margin{{grid-template-columns:1fr 1fr}}}}
 @media(max-width:540px){{.margin{{grid-template-columns:1fr}}}}
@@ -259,10 +360,12 @@ def main() -> int:
     parser.add_argument("audit_json", type=Path, help="JSON from s2c_audit.py --json")
     parser.add_argument("--output", required=True, type=Path, help="HTML report to write")
     parser.add_argument("--walkthrough", type=Path, help="Optional rendered-page capture and callout JSON")
+    parser.add_argument("--signals", nargs="+", type=Path, help="Optional opt-in section signals session exports")
     args = parser.parse_args()
     payload = json.loads(args.audit_json.read_text(encoding="utf-8"))
     walkthrough = json.loads(args.walkthrough.read_text(encoding="utf-8")) if args.walkthrough else None
-    result = render(payload, walkthrough, args.walkthrough.parent if args.walkthrough else None)
+    signal_samples = [json.loads(path.read_text(encoding="utf-8")) for path in args.signals] if args.signals else None
+    result = render(payload, walkthrough, args.walkthrough.parent if args.walkthrough else None, signal_samples)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(result, encoding="utf-8")
     print(args.output)
