@@ -1,0 +1,8 @@
+#!/bin/sh
+# Optional S2C structural preflight. Install only after reviewing existing hooks.
+# Set S2C_AUDIT to the absolute path of scripts/s2c_audit.py in your skill copy.
+if [ -z "${S2C_AUDIT:-}" ]; then
+  echo "S2C_AUDIT is not set; skipping optional structural preflight." >&2
+  exit 0
+fi
+python "$S2C_AUDIT" --staged --fail-on-high

@@ -14,6 +14,7 @@ A public library of focused, portable workflows for Claude Code, Codex, and othe
 | [Make a page answer-ready](skills/answer-ready-web/SKILL.md) | Audit or create evidence-backed landing pages for people, search, and retrieval systems | Python 3.10+ |
 | [Review an interface with UX principles](skills/laws-of-ux/SKILL.md) | Produce evidence-backed UX findings, before/after comparisons, and annotated HTML posters | Python 3.10+ |
 | [Create an interface design system](skills/create-interface-design-system/SKILL.md) | Generate semantic tokens, components, responsive rules, agent guidance, and a standalone specimen | Python 3.10+ |
+| [Scan to Comprehend](skills/scan-to-comprehend/SKILL.md) | Design or review dense websites, articles, and infographics for orientation, fact finding, and understanding | Python 3.10+ for optional preflight |
 
 These are original contributions prepared for this library, not exports of personal or installed skills. Packages marked `visibility: hidden` remain in source while they are developed, but are excluded from the public catalog and its downloadable build. Format compatibility is not an end-to-end runtime test or a performance claim. See each `catalog.json` for requirements, provenance, and compatibility status.
 
