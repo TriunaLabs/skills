@@ -1,6 +1,11 @@
 import importlib.util
+import io
+import json
+import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest.mock import patch
 
 SCRIPT = Path(__file__).resolve().parents[1] / 'skills/scan-to-comprehend/scripts/s2c_audit.py'
 spec = importlib.util.spec_from_file_location('s2c_audit', SCRIPT)
@@ -9,6 +14,17 @@ spec.loader.exec_module(audit)
 
 
 class S2CPreflightTests(unittest.TestCase):
+    def test_cli_records_audit_date_in_json(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / 'page.html'
+            source.write_text('<h1>Products</h1>', encoding='utf-8')
+            output = io.StringIO()
+            with patch.object(audit.sys, 'argv', ['s2c_audit.py', str(source), '--json']), redirect_stdout(output):
+                self.assertEqual(audit.main(), 0)
+            result = json.loads(output.getvalue())
+            self.assertRegex(result['audited_on'], r'^\d{4}-\d{2}-\d{2}$')
+            self.assertEqual(len(result['reports']), 1)
+
     def test_reports_observable_structure_with_explained_risk_estimate(self):
         report = audit.audit_html('<h1>Compare outcomes</h1><h3>Methods</h3><img src="plot.png"><a href="/data">read more</a>', 'sample.html')
         codes = {item['code'] for item in report['findings']}

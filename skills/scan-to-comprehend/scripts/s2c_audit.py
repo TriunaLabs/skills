@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from datetime import date
 import ipaddress
 import json
 import re
@@ -263,9 +264,11 @@ def main() -> int:
     except (OSError, ValueError, subprocess.CalledProcessError) as error:
         print(f"S2C audit: {error}", file=sys.stderr)
         return 2
+    audited_on = date.today().isoformat()
     if args.json:
-        print(json.dumps({"schema_version": "1.1", "reports": reports}, indent=2, ensure_ascii=True))
+        print(json.dumps({"schema_version": "1.1", "audited_on": audited_on, "reports": reports}, indent=2, ensure_ascii=True))
     else:
+        print(f"Audit date: {audited_on}")
         for report in reports:
             print(f"{report['source']}: {len(report['findings'])} structural finding(s)")
             estimate = report["estimated_cognitive_load"]

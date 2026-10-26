@@ -1,5 +1,6 @@
 {
   "schema_version": "1.1",
+  "audited_on": "2026-10-26",
   "reports": [
     {
       "source": "https://jobfitiq.com/ (rendered DOM snapshot)",

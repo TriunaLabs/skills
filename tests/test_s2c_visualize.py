@@ -39,6 +39,7 @@ class S2CVisualizeTests(unittest.TestCase):
         self.assertNotIn("<script>alert(1)</script>", result)
         self.assertIn("Name the destination", result)
         self.assertIn("This is not measured cognitive load", result)
+        self.assertIn("Audit date:</b> Not recorded", result)
 
     def test_walkthrough_embeds_capture_and_keeps_callouts_separate(self):
         with tempfile.TemporaryDirectory() as temporary:
@@ -46,6 +47,7 @@ class S2CVisualizeTests(unittest.TestCase):
             (directory / "hero.png").write_bytes(PIXEL)
             walkthrough = {
                 "url": "https://example.com/",
+                "audited_on": "2026-10-26",
                 "reader_task": "Find the evidence",
                 "frames": [{"image": "hero.png", "callouts": [{
                     "kind": "review", "title": "Unclear number", "x": 0.5, "y": 0.4,
@@ -54,8 +56,17 @@ class S2CVisualizeTests(unittest.TestCase):
             }
             result = VISUALIZE.render(payload(), walkthrough, directory)
             self.assertIn("data:image/png;base64,", result)
+            self.assertIn("<time datetime='2026-10-26'>October 26, 2026</time>", result)
             self.assertIn("No unit is visible.", result)
             self.assertIn("Callouts are review observations, not measured gaze", result)
+            payload_with_date = payload()
+            payload_with_date["audited_on"] = "2026-10-25"
+            with self.assertRaisesRegex(ValueError, "dates do not match"):
+                VISUALIZE.render(payload_with_date, walkthrough, directory)
+            walkthrough["audited_on"] = "2026-02-30"
+            with self.assertRaisesRegex(ValueError, "valid YYYY-MM-DD"):
+                VISUALIZE.render(payload(), walkthrough, directory)
+            walkthrough["audited_on"] = "2026-10-26"
             walkthrough["frames"][0]["image"] = "../outside.png"
             with self.assertRaises(ValueError):
                 VISUALIZE.render(payload(), walkthrough, directory)

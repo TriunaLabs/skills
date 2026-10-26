@@ -5,14 +5,27 @@ from __future__ import annotations
 
 import argparse
 import base64
+from datetime import date
 import html
 import json
 from pathlib import Path
+import re
 from urllib.parse import urlsplit
 
 
 def escaped(value: object) -> str:
     return html.escape(str(value), quote=True)
+
+
+def audit_date(value: object) -> tuple[str, str]:
+    """Return a machine-readable audit date and a readable label."""
+    if not isinstance(value, str) or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        raise ValueError("audited_on must be a valid YYYY-MM-DD date")
+    try:
+        parsed = date.fromisoformat(value)
+    except ValueError as exc:
+        raise ValueError("audited_on must be a valid YYYY-MM-DD date") from exc
+    return value, f"{parsed.strftime('%B')} {parsed.day}, {parsed.year}"
 
 
 def item_list(items: list[object], empty: str, *, field: str = "message") -> str:
@@ -49,7 +62,7 @@ def heading_map(headings: list[object]) -> str:
     return "<ol class='outline'>" + "".join(rows) + "</ol>"
 
 
-def report_html(report: dict[str, object], walkthrough: str = "") -> str:
+def report_html(report: dict[str, object], walkthrough: str = "", audited_on: object = None) -> str:
     estimate = report.get("estimated_cognitive_load", {})
     if not isinstance(estimate, dict):
         estimate = {}
@@ -67,11 +80,17 @@ def report_html(report: dict[str, object], walkthrough: str = "") -> str:
     score_width = "0"
     if isinstance(score, (int, float)) and not isinstance(score, bool):
         score_width = str(max(0, min(100, score)))
+    if audited_on is None:
+        date_line = "<p class='audit-date'><b>Audit date:</b> Not recorded</p>"
+    else:
+        iso_date, readable_date = audit_date(audited_on)
+        date_line = f"<p class='audit-date'><b>Audit date:</b> <time datetime='{iso_date}'>{readable_date}</time></p>"
     return f"""
     <article class="report" aria-label="Audit for {escaped(report.get('source', 'unknown source'))}">
       <header>
         <p class="eyebrow">SCAN TO COMPREHEND / SOURCE PREFLIGHT</p>
         <h1>{escaped(report.get('source', 'Unknown source'))}</h1>
+        {date_line}
         <p class="subtitle">A source check followed by questions for rendered and reader review.</p>
       </header>
       <section class="summary" aria-label="Structural friction estimate">
@@ -120,6 +139,7 @@ def screenshot_uri(path: Path) -> str:
 
 
 def walkthrough_html(walkthrough: dict[str, object], asset_dir: Path) -> str:
+    audit_date(walkthrough.get("audited_on"))
     frames = walkthrough.get("frames")
     if not isinstance(frames, list) or not frames:
         raise ValueError("Walkthrough needs a non-empty frames array")
@@ -192,7 +212,10 @@ def render(payload: dict[str, object], walkthrough: dict[str, object] | None = N
         if not isinstance(report, dict):
             raise ValueError("Each report must be an object")
     walk = walkthrough_html(walkthrough, asset_dir or Path.cwd()) if walkthrough else ""
-    body = report_html(reports[0], walk) + "\n" + "\n".join(report_html(report) for report in reports[1:])
+    dated = walkthrough.get("audited_on") if walkthrough else payload.get("audited_on")
+    if walkthrough and payload.get("audited_on") and payload["audited_on"] != dated:
+        raise ValueError("Audit JSON and walkthrough dates do not match")
+    body = report_html(reports[0], walk, dated) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>S2C source audit</title>
@@ -203,6 +226,7 @@ main{{max-width:1100px;margin:auto;padding:clamp(1rem,3vw,2.5rem)}}.report{{marg
 .eyebrow,.step{{color:var(--green);font-size:.78rem;font-weight:700;letter-spacing:.12em}}
 h1{{font-size:clamp(1.8rem,4vw,3rem);overflow-wrap:anywhere;line-height:1.15;margin:.35rem 0}}
 h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1rem}}.subtitle{{color:var(--muted)}}
+.audit-date{{display:inline-block;background:var(--soft);border-left:3px solid var(--green);padding:.45rem .7rem;margin:.45rem 0 .7rem;font-size:.93rem}}
 .summary{{display:flex;gap:1.5rem;align-items:center;background:#fff;border:1px solid var(--line);padding:1.3rem;margin:1.7rem 0 .7rem}}
 .score{{display:flex;align-items:baseline;white-space:nowrap}}.score strong{{font-size:3.5rem;line-height:1}}.score span{{color:var(--muted)}}
 .score-context{{flex:1;min-width:0}}.score-context p{{margin:.45rem 0 0;color:var(--muted);font-size:.9rem}}

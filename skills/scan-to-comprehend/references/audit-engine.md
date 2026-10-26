@@ -17,7 +17,7 @@ python scripts/s2c_audit.py page.html --json > audit.json
 python scripts/s2c_visualize.py audit.json --output audit.html
 ```
 
-The optional HTML report visualizes the existing JSON rather than adding new measurements. Its heading map reflects source order; the three reader questions and next checks are prompts for a rendered and reader review, not automatic pass/fail results. Preserve the JSON alongside the HTML when the report is shared so each displayed claim remains inspectable.
+The CLI records its local run date as top-level `audited_on` in JSON and prints it in text mode. The optional HTML report displays that date beside the title and visualizes the existing JSON rather than adding new measurements. Its heading map reflects source order; the three reader questions and next checks are prompts for a rendered and reader review, not automatic pass/fail results. Preserve the JSON alongside the HTML when the report is shared so each displayed claim remains inspectable.
 
 For a public URL case study with actual page captures and reviewer callouts, use the [rendered-page walkthrough](visual-report.md). Its visual observations are a separate evidence layer and do not change the source-only index.
 
