@@ -2,7 +2,10 @@
 
 import importlib.util
 from pathlib import Path
+import tempfile
 import unittest
+
+from PIL import Image
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "skills/scan-to-comprehend/scripts/s2c_browser_to_attention.py"
@@ -34,6 +37,33 @@ class BrowserToAttentionTests(unittest.TestCase):
         self.assertEqual(elements["nav"]["width"], 10)
         self.assertNotIn("offscreen", elements)
         self.assertEqual(len(elements), 3)
+
+    def test_icon_only_control_is_not_a_text_contrast_sample(self):
+        node = {"id": "chat", "tag": "button", "role": None, "heading_level": None,
+                "name": "Open chat", "text": "", "in_viewport": True, "aria_hidden": False,
+                "box": {"x": 5, "y": 5, "width": 30, "height": 30},
+                "style": {"color": "rgb(0, 0, 0)", "background": "rgb(0, 0, 0)"}}
+        snapshot = {"schema": "s2c-browser-capture/v1", "frames": [{"id": "desktop", "image": "screen.png",
+                    "viewport": {"width": 100, "height": 100}, "captured_at": "2026-10-26T10:00:00Z",
+                    "nodes": [node]}]}
+        element = BRIDGE.project(snapshot)["frames"][0]["elements"][0]
+        self.assertFalse(element["painted_text"])
+        self.assertNotIn("foreground", element)
+
+    def test_screenshot_rejects_css_color_from_hidden_underlay(self):
+        with tempfile.TemporaryDirectory(dir=SCRIPT.parents[3]) as folder:
+            root = Path(folder)
+            Image.new("RGB", (100, 100), "#006b52").save(root / "screen.png")
+            node = {"id": "hero", "tag": "h1", "heading_level": 1, "name": "A lesson",
+                    "in_viewport": True, "aria_hidden": False,
+                    "box": {"x": 5, "y": 10, "width": 80, "height": 30},
+                    "style": {"color": "rgb(255, 255, 255)", "background": "rgb(247, 245, 239)"}}
+            snapshot = {"schema": "s2c-browser-capture/v1", "frames": [{"id": "desktop", "image": "screen.png",
+                        "viewport": {"width": 100, "height": 100}, "captured_at": "2026-10-26T10:00:00Z",
+                        "nodes": [node]}]}
+            element = BRIDGE.project(snapshot, root)["frames"][0]["elements"][0]
+            self.assertNotIn("background", element)
+            self.assertNotIn("foreground", element)
 
 
 if __name__ == "__main__":

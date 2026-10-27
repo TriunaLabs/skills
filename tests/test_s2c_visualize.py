@@ -145,9 +145,41 @@ class S2CVisualizeTests(unittest.TestCase):
             self.assertNotIn("<unsafe>", result)
             self.assertIn("data:image/png;base64,", result)
             self.assertIn("<time datetime='2026-10-26'>October 26, 2026</time>", result)
+            self.assertIn("Marker 1 → reading step 1", result)
+            self.assertIn("Visible marker key · reading", result)
             assistive["frames"][0]["image"] = "../screen.png"
             with self.assertRaisesRegex(ValueError, "inside result directory"):
                 VISUALIZE.render(payload(), assistive=assistive, assistive_dir=directory)
+
+    def test_visible_marker_numbers_are_contiguous_when_ax_steps_have_no_box(self):
+        with tempfile.TemporaryDirectory(dir=SCRIPT.parents[1]) as temporary:
+            directory = Path(temporary)
+            (directory / "screen.png").write_bytes(PIXEL)
+            assistive = {"schema": "s2c-assistive-v1", "audited_on": "2026-10-26",
+                         "frames": [{"id": "desktop", "image": "screen.png", "captured_at": "2026-10-26T10:00:00Z",
+                                     "viewport": {"width": 100, "height": 100}, "document_width": 100,
+                                     "reading_path": [
+                                         {"index": 1, "role": "StaticText", "name": "Unboxed", "box": None, "in_viewport": False},
+                                         {"index": 2, "role": "heading", "name": "Visible", "box": {"x": 5, "y": 5, "width": 40, "height": 20}, "in_viewport": True}],
+                                     "focus_path": [], "findings": [], "first_heading_step": 2,
+                                     "first_action_step": None, "focus_stop": "body"}]}
+            result = VISUALIZE.render(payload(), assistive=assistive, assistive_dir=directory)
+            self.assertIn("Marker 1 → reading step 2", result)
+            self.assertNotIn("Marker 2 → reading step 2", result)
+
+    def test_rubric_panel_shows_assessed_denominator_and_actions(self):
+        rubric = {"schema": "s2c-browser-rubric/v1", "audited_on": "2026-10-26",
+                  "rubric_version": "1.0.0", "score": {"earned": 70, "assessed": 90,
+                  "percent_of_assessed": 78}, "counts": {"warning": 1, "review": 1, "not_checked": 0},
+                  "limit": "Specific browser checks only.", "rules": [{"id": "nav_shared_fragment",
+                  "title": "Navigation destinations", "status": "warning", "earned": 0, "weight": 20,
+                  "evidence": ["Two links target #top."], "suggestion": "Fix the anchors."}]}
+        dated_payload = payload()
+        dated_payload["audited_on"] = "2026-10-26"
+        result = VISUALIZE.render(dated_payload, rubric=rubric)
+        self.assertIn("70<span>/90</span>", result)
+        self.assertIn("Fix the anchors.", result)
+        self.assertIn("Deterministic checklist", result)
 
 
 if __name__ == "__main__":

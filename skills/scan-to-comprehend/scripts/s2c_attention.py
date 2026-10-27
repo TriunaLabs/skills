@@ -51,7 +51,7 @@ def contrast_ratio(foreground: str, background: str) -> float:
 
 def text_contrast_spotcheck(element: dict) -> dict | None:
     """Screen WCAG 2.2 SC 1.4.3 using supplied solid colors, never certify a page."""
-    if element["kind"] not in TEXT_KINDS:
+    if element["kind"] not in TEXT_KINDS or element.get("painted_text") is False:
         return None  # Logotypes and non-text graphics require different review.
     font_px = element.get("font_px")
     font_weight = element.get("font_weight", 400)

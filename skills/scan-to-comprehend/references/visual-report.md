@@ -22,6 +22,8 @@ For the browser-reported accessibility-tree and keyboard paths, follow the [assi
 Screenshot paths are relative to the manifest directory. Pin coordinates are proportions of the screenshot width and height; `0,0` is its top-left corner. The renderer checks paths stay inside the manifest directory and accepts only PNG, JPEG, and WebP bytes.
 Set `audited_on` to the date the page was inspected in `YYYY-MM-DD` form. The report displays it beside the title; regenerating the report later must preserve the original audit date. If the audit JSON also has `audited_on`, the dates must match. A JSON-only source report can carry this top-level field too; if it is absent, the report states that no audit date was recorded.
 
+For review callouts, optional `priority` is `P1`, `P2`, or `P3`, and optional `evidence_level` is `observed` or `hypothesis`. These populate a visible action queue before the screenshots. The priority is a reviewer judgment, not a deterministic score; `observed` refers to the captured feature or action, not to the untested reader effect. Keep the suggestion and disconfirming check in each callout.
+
 ```json
 {
   "url": "https://example.com/",

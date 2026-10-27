@@ -1,0 +1,14 @@
+{
+  "schema": "s2c-browser-rubric-config/v1",
+  "version": "1.0.0",
+  "description": "Editorial weights for repeatable browser checks. Edit weights and rerun the audit; this is not a cognitive-load or WCAG score.",
+  "weights": {
+    "nav_shared_fragment": 20,
+    "one_page_h1": 10,
+    "h1_in_first_view": 15,
+    "narrow_reflow": 20,
+    "named_focus_controls": 15,
+    "image_alt_attribute": 10,
+    "solid_text_contrast": 10
+  }
+}

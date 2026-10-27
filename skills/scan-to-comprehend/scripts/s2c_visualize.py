@@ -64,7 +64,8 @@ def heading_map(headings: list[object]) -> str:
 
 
 def report_html(report: dict[str, object], walkthrough: str = "", audited_on: object = None,
-                signals: str = "", attention: str = "", assistive: str = "") -> str:
+                signals: str = "", attention: str = "", assistive: str = "", rubric: str = "",
+                rubric_teaser: str = "") -> str:
     estimate = report.get("estimated_cognitive_load", {})
     if not isinstance(estimate, dict):
         estimate = {}
@@ -94,6 +95,8 @@ def report_html(report: dict[str, object], walkthrough: str = "", audited_on: ob
         links.append("<a href='#attention'>Attention and contrast</a>")
     if assistive:
         links.append("<a href='#assistive'>Reading and Tab paths</a>")
+    if rubric:
+        links.append("<a href='#rubric'>Deterministic checklist</a>")
     nav = f"<nav class='report-nav' aria-label='Report sections'>{' · '.join(links)}</nav>" if links else ""
     return f"""
     <article class="report" aria-label="Audit for {escaped(report.get('source', 'unknown source'))}">
@@ -104,11 +107,13 @@ def report_html(report: dict[str, object], walkthrough: str = "", audited_on: ob
         <p class="subtitle">{'A rendered-page walkthrough followed by source and browser checks.' if walkthrough else 'A source check followed by questions for rendered and reader review.'}</p>
         {nav}
       </header>
+      {rubric_teaser}
       {walkthrough}
-      <section class="summary" id="summary" aria-label="Structural friction estimate">
+      {rubric}
+      <section class="summary" id="summary" aria-label="Source-only structural friction estimate">
         <div class="score"><strong>{escaped(score)}</strong><span>/ 100</span></div>
         <div class="score-context">
-          <h2>Structural friction risk index</h2>
+          <h2>Source-only structural friction risk index</h2>
           <div class="track" aria-hidden="true"><span style="width:{score_width}%"></span></div>
           <p>{len(findings)} flagged source issue(s) · {len(strengths)} narrow strength(s) · {escaped(estimate.get('confidence', 'unknown'))} confidence</p>
         </div>
@@ -214,23 +219,21 @@ def assistive_html(result: dict[str, object], asset_dir: Path) -> str:
     if not isinstance(frames, list) or not frames:
         raise ValueError("Assistive result needs frames")
 
+    def plotted_steps(steps: list[dict]) -> list[dict]:
+        return [step for step in steps if step.get("in_viewport") and isinstance(step.get("box"), dict)][:20]
+
     def path_svg(steps: list[dict], viewport: dict, color: str, css_class: str) -> str:
         width, height = int(viewport["width"]), int(viewport["height"])
         points = []
         circles = []
-        for step in steps:
-            box = step.get("box")
-            if not step.get("in_viewport") or not isinstance(box, dict):
-                continue
+        for marker, step in enumerate(plotted_steps(steps), 1):
+            box = step["box"]
             x = max(0, min(width, float(box["x"]) + float(box["width"]) / 2))
             y = max(0, min(height, float(box["y"]) + float(box["height"]) / 2))
             points.append(f"{x:.1f},{y:.1f}")
-            number = escaped(step["index"])
-            opacity = ".48" if len(points) > 10 else "1"
+            opacity = ".48" if marker > 10 else "1"
             circles.append(f"<g opacity='{opacity}'><circle cx='{x:.1f}' cy='{y:.1f}' r='12' fill='{color}' stroke='white' stroke-width='2'/>"
-                           f"<text x='{x:.1f}' y='{y + 4:.1f}' text-anchor='middle' fill='white' font-size='11' font-weight='700'>{number}</text></g>")
-            if len(points) == 20:
-                break
+                           f"<text x='{x:.1f}' y='{y + 4:.1f}' text-anchor='middle' fill='white' font-size='11' font-weight='700'>{marker}</text></g>")
         line = f"<polyline points='{' '.join(points[:10])}' fill='none' stroke='{color}' stroke-width='3' stroke-opacity='.85'/>" if len(points) > 1 else ""
         if len(points) > 10:
             line += f"<polyline points='{' '.join(points[9:])}' fill='none' stroke='{color}' stroke-width='2' stroke-opacity='.35'/>"
@@ -253,8 +256,14 @@ def assistive_html(result: dict[str, object], asset_dir: Path) -> str:
         heading_note = f"First heading: reading step {first_heading}." if first_heading else "No heading in the captured AX path."
         action = frame.get("first_action_step")
         action_note = f"First named action: reading step {action}." if action else "No named action in the captured AX path."
-        reading_rows = "".join(f"<li><b>{escaped(step['index'])}. {escaped(step['role'])}</b> — {escaped(step['name'])}</li>" for step in reading[:30])
-        focus_rows = "".join(f"<li><b>{escaped(step['index'])}. {escaped(step['tag'])}</b> — {escaped(step.get('label') or '(no captured label)')}</li>" for step in focus[:30])
+        reading_rows = "".join(f"<li><b>{escaped(step['role'])}</b> — {escaped(step['name'])}</li>" for step in reading[:30])
+        focus_rows = "".join(f"<li><b>{escaped(step['tag'])}</b> — {escaped(step.get('label') or '(no captured label)')}</li>" for step in focus[:30])
+        reading_markers = "".join(
+            f"<li>Marker {marker} → reading step {escaped(step['index'])}: <b>{escaped(step['role'])}</b> — {escaped(step['name'])}</li>"
+            for marker, step in enumerate(plotted_steps(reading), 1))
+        focus_markers = "".join(
+            f"<li>Marker {marker} → Tab step {escaped(step['index'])}: <b>{escaped(step['tag'])}</b> — {escaped(step.get('label') or '(no captured label)')}</li>"
+            for marker, step in enumerate(plotted_steps(focus), 1))
         findings = frame.get("findings", [])
         finding_rows = item_list(findings[:20], "No automatic review candidate in this capture.")
         blocks.append(
@@ -269,15 +278,18 @@ def assistive_html(result: dict[str, object], asset_dir: Path) -> str:
             f"<div class='assistive-view' style='max-width:min(100%,{int(viewport['width'])}px)'><img src='{screenshot_uri(image_path)}' alt='Audited {escaped(frame['id'])} screenshot'>"
             f"{path_svg(reading, viewport, '#0d6b4e', 'reading-path')}"
             f"{path_svg(focus, viewport, '#9b4d06', 'focus-path')}</div>"
-            f"<div class='assistive-columns'><details><summary>Reading order · first 30 of {len(reading)}</summary><ol>{reading_rows}</ol></details>"
-            f"<details><summary>Keyboard order · first 30 of {len(focus)}</summary><ol>{focus_rows}</ol></details>"
+            f"<div class='assistive-columns'><details open><summary>Visible marker key · reading</summary><ol class='marker-key'>{reading_markers}</ol></details>"
+            f"<details><summary>Visible marker key · Tab</summary><ol class='marker-key'>{focus_markers}</ol></details>"
+            f"<details><summary>Full reading order · first 30 of {len(reading)}</summary><ol>{reading_rows}</ol></details>"
+            f"<details><summary>Full keyboard order · first 30 of {len(focus)}</summary><ol>{focus_rows}</ol></details>"
             f"<div><h4>Review candidates · {len(findings)}</h4>{finding_rows}</div></div></section>"
         )
     return ("<section class='assistive' id='assistive' aria-label='Assistive reading view'>"
             "<p class='eyebrow'>CHROMIUM / ASSISTIVE READING VIEW</p><h2>Reading and keyboard paths</h2>"
             f"<p>{escaped(result.get('basis', 'Chromium capture'))}. {escaped(result.get('limit', ''))} "
-            "Numbers on the screenshot mark the first 20 mapped elements in the first viewport; steps after 10 are faint. The lists include offscreen steps. "
-            "Lines connect mapped steps in order and may skip unboxed text; they show neither eye movement nor speech timing.</p>"
+            "Screenshot markers count only mapped, visible elements from 1 in each viewport; the marker key maps them back to full reading or Tab steps. "
+            "The full order lists may contain offscreen or unboxed AX nodes, including parent and child text, so their step numbers can differ. "
+            "Markers after 10 are faint. Lines show neither eye movement nor speech timing.</p>"
             + "".join(blocks) + "</section>")
 
 
@@ -349,6 +361,7 @@ def walkthrough_html(walkthrough: dict[str, object], asset_dir: Path) -> str:
     task = escaped(walkthrough.get("reader_task", "Reader task not supplied"))
     basis = escaped(walkthrough.get("audit_basis", "Source audit"))
     rows = []
+    actions = []
     for frame_number, frame in enumerate(frames, 1):
         if not isinstance(frame, dict):
             raise ValueError("Each frame must be an object")
@@ -372,6 +385,12 @@ def walkthrough_html(walkthrough: dict[str, object], asset_dir: Path) -> str:
             kind = note.get("kind", "review")
             if kind not in {"strength", "review"}:
                 raise ValueError("Callout kind must be strength or review")
+            priority = note.get("priority")
+            evidence_level = note.get("evidence_level")
+            if priority is not None and priority not in {"P1", "P2", "P3"}:
+                raise ValueError("Callout priority must be P1, P2, or P3")
+            if evidence_level is not None and evidence_level not in {"observed", "hypothesis"}:
+                raise ValueError("Callout evidence_level must be observed or hypothesis")
             key = f"f{frame_number}-n{note_number}"
             label = escaped(note.get("title", f"Observation {note_number}"))
             pins.append(
@@ -381,21 +400,35 @@ def walkthrough_html(walkthrough: dict[str, object], asset_dir: Path) -> str:
             def line(field: str, heading: str) -> str:
                 value = note.get(field)
                 return f"<p><b>{heading}</b> {escaped(value)}</p>" if value else ""
+            if kind == "review":
+                actions.append(({"P1": 1, "P2": 2, "P3": 3}.get(priority, 4),
+                                f"<li><span class='priority'>{escaped(priority or 'Review')}</span> "
+                                f"<a href='#note-{key}'>{label}</a>"
+                                f"<span class='evidence-level'>{escaped(evidence_level or 'review judgment')}</span>"
+                                f"<p><b>Suggested action:</b> {escaped(note.get('suggestion') or 'Inspect this finding.')}</p></li>"))
             rail.append(
                 f"<li id='note-{key}' class='callout {kind}'><span class='callout-type'>{kind}</span>"
-                f"<h4>{note_number}. {label}</h4>"
+                + (f" <span class='priority'>{escaped(priority)}</span>" if priority else "")
+                + (f" <span class='evidence-level'>{escaped(evidence_level)}</span>" if evidence_level else "")
+                + f"<h4>{note_number}. {label}</h4>"
                 + line("observed", "Observed:") + line("likely_effect", "Likely task effect:")
-                + line("suggestion", "Suggestion:") + line("check", "Check:") + "</li>"
+                + (f"<p class='suggestion'><b>Suggested action:</b> {escaped(note['suggestion'])}</p>" if note.get("suggestion") else "")
+                + line("check", "Check:") + "</li>"
             )
         rows.append(
             f"<section class='walk-frame'><h3>{escaped(frame.get('label', f'Page view {frame_number}'))}</h3>"
             f"<div class='walk-row'><div class='shot'><img src='{uri}' alt='{escaped(frame.get('alt', 'Rendered page capture'))}'>"
             + "".join(pins) + "</div><ol class='margin'>" + "".join(rail) + "</ol></div></section>"
         )
+    action_board = ("<section class='action-board' aria-label='Prioritized actions'>"
+                    f"<h3>Action queue · {len(actions)} review items</h3>"
+                    "<p>Priorities are reviewer judgments; observed evidence and untested effects stay distinct in each callout.</p>"
+                    "<ol>" + "".join(item for _, item in sorted(actions, key=lambda row: row[0])) + "</ol></section>") if actions else ""
     return (
         "<section class='walkthrough' id='walkthrough' aria-label='Rendered page walkthrough'>"
         f"<div class='walk-head'><p class='eyebrow'>RENDERED PAGE WALKTHROUGH</p><h2>{task}</h2>"
         f"<p><a href='{escaped(url)}'>{escaped(url)}</a> · {basis} · Callouts are review observations, not measured gaze.</p></div>"
+        + action_board
         + "".join(rows) + "</section>"
     )
 
@@ -491,11 +524,46 @@ def section_signals_html(samples: list[object]) -> str:
     )
 
 
+def browser_rubric_html(result: dict[str, object]) -> str:
+    if result.get("schema") != "s2c-browser-rubric/v1":
+        raise ValueError("Expected s2c-browser-rubric/v1")
+    score = result.get("score", {})
+    rules = result.get("rules")
+    if not isinstance(score, dict) or not isinstance(rules, list):
+        raise ValueError("Browser rubric needs score and rules")
+    rows = []
+    for rule in rules:
+        if not isinstance(rule, dict) or rule.get("status") not in {"pass", "warning", "review", "not_checked"}:
+            raise ValueError("Invalid browser rubric rule")
+        status = rule["status"]
+        evidence = item_list(rule.get("evidence", [])[:5], "No evidence supplied.")
+        points = (f"{escaped(rule.get('earned', 0))}/{escaped(rule.get('weight', 0))} points"
+                  if status in {"pass", "warning"} else f"{escaped(rule.get('weight', 0))} points held out")
+        rows.append(
+            f"<li class='rubric-rule {status}'><div class='rubric-rule-head'><span class='rubric-status'>{escaped(status.replace('_', ' '))}</span>"
+            f"<h3>{escaped(rule.get('title', rule.get('id', 'Check')))}</h3>"
+            f"<strong>{points}</strong></div>"
+            f"{evidence}<p class='rubric-next'><b>Next action:</b> {escaped(rule.get('suggestion', 'Review this check.'))}</p></li>"
+        )
+    return (
+        "<section class='browser-rubric' id='rubric' aria-label='Deterministic browser checklist'>"
+        "<p class='eyebrow'>REPEATABLE CHECKS / EDITABLE RUBRIC</p><h2>What did the browser rules flag?</h2>"
+        f"<div class='rubric-summary'><strong>{escaped(score.get('earned', 0))}<span>/{escaped(score.get('assessed', 0))}</span></strong>"
+        f"<p>screened points confirmed · {escaped(score.get('percent_of_assessed', '—'))}% of assessed weight. "
+        f"{escaped(result.get('counts', {}).get('warning', 0))} warning(s), "
+        f"{escaped(result.get('counts', {}).get('review', 0))} review item(s), "
+        f"{escaped(result.get('counts', {}).get('not_checked', 0))} not checked.</p></div>"
+        f"<p class='boundary'>{escaped(result.get('limit', ''))} Rubric version {escaped(result.get('rubric_version', 'unknown'))}; "
+        "weights are editable in browser-rubric.json and the same capture can be rescored. Compare pages only with the same rule version, task and capture scope.</p>"
+        "<ol class='rubric-rules'>" + "".join(rows) + "</ol></section>"
+    )
+
+
 def render(payload: dict[str, object], walkthrough: dict[str, object] | None = None,
            asset_dir: Path | None = None, signal_samples: list[object] | None = None,
            attention: dict[str, object] | None = None,
            attention_dir: Path | None = None, assistive: dict[str, object] | None = None,
-           assistive_dir: Path | None = None) -> str:
+           assistive_dir: Path | None = None, rubric: dict[str, object] | None = None) -> str:
     if payload.get("schema_version") != "1.1":
         raise ValueError("Expected S2C audit schema_version 1.1")
     reports = payload.get("reports")
@@ -509,12 +577,20 @@ def render(payload: dict[str, object], walkthrough: dict[str, object] | None = N
     heat = (attention_html(attention, attention_dir or Path.cwd()) + wcag_spotcheck_html(attention)
             if attention else "")
     assistive_view = assistive_html(assistive, assistive_dir or Path.cwd()) if assistive else ""
+    rubric_view = browser_rubric_html(rubric) if rubric else ""
+    rubric_teaser = ("<aside class='rubric-teaser' aria-label='Browser checklist summary'>"
+                     f"<strong>{escaped(rubric['score']['earned'])}/{escaped(rubric['score']['assessed'])}</strong>"
+                     f"<span>assessed browser points confirmed · {escaped(rubric['counts']['warning'])} warning(s). "
+                     "Editorial checklist, not a UX or cognitive-load score.</span>"
+                     "<a href='#rubric'>See all rule evidence and actions</a></aside>") if rubric else ""
     dated = walkthrough.get("audited_on") if walkthrough else (assistive.get("audited_on") if assistive else payload.get("audited_on"))
     if payload.get("audited_on") and payload["audited_on"] != dated:
         raise ValueError("Audit JSON and report dates do not match")
     if assistive and assistive.get("audited_on") != dated:
         raise ValueError("Assistive and report dates do not match")
-    body = report_html(reports[0], walk, dated, signals, heat, assistive_view) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
+    if rubric and rubric.get("audited_on") != dated:
+        raise ValueError("Browser rubric and report dates do not match")
+    body = report_html(reports[0], walk, dated, signals, heat, assistive_view, rubric_view, rubric_teaser) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{'S2C visual audit' if walkthrough else ('S2C assistive reading view' if assistive else ('S2C visual attention baseline' if attention else 'S2C source audit'))}</title>
@@ -527,6 +603,7 @@ h1{{font-size:clamp(1.8rem,4vw,3rem);overflow-wrap:anywhere;line-height:1.15;mar
 h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1rem}}.subtitle{{color:var(--muted)}}
 .audit-date{{display:inline-block;background:var(--soft);border-left:3px solid var(--green);padding:.45rem .7rem;margin:.45rem 0 .7rem;font-size:.93rem}}
 .report-nav{{display:flex;flex-wrap:wrap;gap:.4rem 1rem;margin:.6rem 0 1rem;font-size:.93rem}}.report-nav a{{color:var(--green);font-weight:700}}
+.rubric-teaser{{display:flex;align-items:center;gap:.65rem 1rem;flex-wrap:wrap;background:#fff;border-left:5px solid #a35a00;padding:.7rem 1rem;margin:1.2rem 0}}.rubric-teaser strong{{font-size:1.3rem;white-space:nowrap}}.rubric-teaser span{{flex:1 1 360px;font-size:.88rem}}.rubric-teaser a{{color:var(--green);font-weight:700;font-size:.88rem}}
 .summary{{display:flex;gap:1.5rem;align-items:center;background:#fff;border:1px solid var(--line);padding:1.3rem;margin:1.7rem 0 .7rem}}
 .score{{display:flex;align-items:baseline;white-space:nowrap}}.score strong{{font-size:3.5rem;line-height:1}}.score span{{color:var(--muted)}}
 .score-context{{flex:1;min-width:0}}.score-context p{{margin:.45rem 0 0;color:var(--muted);font-size:.9rem}}
@@ -540,6 +617,8 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 .code{{font:700 .8rem ui-monospace,monospace;color:var(--green)}}.empty,footer{{color:var(--muted)}}footer{{font-size:.85rem;border-top:1px solid var(--line);padding-top:1rem}}
 .walkthrough{{margin:2.5rem 0}}.walk-head{{border-top:2px solid var(--ink);padding-top:1rem;margin-bottom:1.5rem}}.walk-head h2{{font-size:1.5rem;max-width:60ch}}.walk-head p:last-child{{color:var(--muted);font-size:.9rem}}
 .walk-head a{{color:var(--green);overflow-wrap:anywhere}}.walk-frame{{margin:0 0 2.2rem}}.walk-frame h3{{font-size:1.08rem;margin:0 0 .7rem}}
+.action-board{{background:#fff;border:1px solid var(--line);border-top:5px solid #a35a00;padding:1.2rem;margin:1rem 0 2rem}}.action-board h3{{font-size:1.35rem;margin:0}}.action-board>p{{color:var(--muted);font-size:.9rem}}
+.action-board ol{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;list-style:none;padding:0;margin:0}}.action-board li{{background:#fff8eb;border:1px solid #e8d5b7;padding:.8rem;margin:0}}.action-board a{{color:var(--ink);font-weight:750}}.action-board li p{{margin:.4rem 0 0;font-size:.9rem}}.priority{{display:inline-block;background:#763b00;color:#fff;padding:.13rem .42rem;border-radius:.2rem;font:700 .72rem system-ui,sans-serif;margin-right:.3rem}}.evidence-level{{display:inline-block;color:#5d533f;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;margin-left:.3rem}}
 .walk-row{{display:grid;grid-template-columns:minmax(0,1.9fr) minmax(260px,1fr);gap:1.2rem;align-items:start}}
 .shot{{position:relative;min-width:0}}.shot img{{display:block;width:100%;height:auto;border:1px solid var(--line)}}
 .pin{{position:absolute;transform:translate(-50%,-50%);display:grid;place-items:center;width:2rem;height:2rem;border-radius:50%;background:var(--ink);color:#fff;text-decoration:none;font-weight:700;box-shadow:0 0 0 3px #fff}}
@@ -547,6 +626,8 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 .margin{{list-style:none;padding:0;margin:0;display:grid;gap:.8rem}}.callout{{border-left:4px solid #b06c00;padding:.3rem 0 .3rem .8rem;background:#fff}}
 .callout.strength{{border-left-color:var(--green)}}.callout:target{{background:var(--soft)}}.callout-type{{text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-size:.7rem;font-weight:700}}
 .callout h4{{margin:.15rem 0 .35rem;font-size:1rem}}.callout p{{font-size:.87rem;margin:.25rem 0;color:var(--muted)}}.callout b{{color:var(--ink)}}
+.callout .suggestion{{background:#fff0d8;border-left:3px solid #a35a00;color:var(--ink);padding:.5rem .6rem;margin:.55rem 0;font-size:.9rem}}.callout.strength .suggestion{{background:#e8f2e9;border-left-color:var(--green)}}
+.browser-rubric{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}.browser-rubric>h2{{font-size:1.55rem}}.rubric-summary{{display:flex;align-items:center;gap:1.2rem;background:#f4f6f0;padding:1rem;margin:1rem 0}}.rubric-summary>strong{{white-space:nowrap;font-size:2.3rem;line-height:1}}.rubric-summary>strong span{{font-size:1.3rem;color:var(--muted)}}.rubric-summary p{{margin:0}}.rubric-rules{{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}}.rubric-rule{{margin:0;padding:1rem;border:1px solid var(--line);border-left:4px solid var(--green);background:#fbfcfa}}.rubric-rule.warning{{border-left-color:#a35a00;background:#fff8eb}}.rubric-rule.review,.rubric-rule.not_checked{{border-left-color:#667784}}.rubric-rule-head{{display:flex;flex-wrap:wrap;gap:.3rem .6rem;align-items:baseline}}.rubric-rule-head h3{{flex:1 1 100%;font-size:1rem;margin:.1rem 0}}.rubric-rule-head strong{{font-size:.82rem}}.rubric-status{{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}}.rubric-rule ul{{font-size:.85rem;margin:.35rem 0}}.rubric-next{{font-size:.85rem;background:#fff;padding:.4rem .55rem;margin:.5rem 0 0}}
 .attention{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}
 .attention>h2{{font-size:1.55rem}}.attention>p{{max-width:85ch}}
 .attention-frame{{border-top:1px solid var(--line);padding:1.3rem 0}}.attention-frame h3{{font-size:1.1rem;margin:0 0 .25rem}}
@@ -567,6 +648,7 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 .assistive-columns{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1rem;font-size:.87rem}}
 .assistive-columns details,.assistive-columns>div{{min-width:0;background:var(--paper);padding:.7rem}}.assistive-columns summary{{cursor:pointer;font-weight:700}}
 .assistive-columns ol,.assistive-columns ul{{max-height:20rem;overflow:auto;overflow-wrap:anywhere}}
+.assistive-columns .marker-key{{list-style:none;padding-left:0}}
 .wcag{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}
 .wcag>h2{{font-size:1.55rem}}.wcag>p{{max-width:85ch}}.wcag a{{color:var(--green)}}
 .wcag-frame{{border-top:1px solid var(--line);padding:1.2rem 0}}.wcag-frame h3{{margin:0 0 .3rem;font-size:1.1rem}}
@@ -580,6 +662,8 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 .mini-track i{{display:block;height:100%;background:var(--green)}}
 @media(max-width:700px){{.route,.columns{{grid-template-columns:1fr}}.summary{{align-items:flex-start}}}}
 @media(max-width:850px){{.walk-row{{grid-template-columns:1fr}}.margin{{grid-template-columns:1fr 1fr}}}}
+@media(max-width:700px){{.action-board ol{{grid-template-columns:1fr}}}}
+@media(max-width:700px){{.rubric-rules{{grid-template-columns:1fr}}}}
 @media(max-width:540px){{.margin{{grid-template-columns:1fr}}}}
 @media(max-width:700px){{.attention-cues{{grid-template-columns:1fr}}}}
 @media(max-width:700px){{.assistive-columns{{grid-template-columns:1fr}}}}
@@ -595,15 +679,17 @@ def main() -> int:
     parser.add_argument("--signals", nargs="+", type=Path, help="Optional opt-in section signals session exports")
     parser.add_argument("--attention", type=Path, help="Optional S2C heuristic attention result JSON")
     parser.add_argument("--assistive", type=Path, help="Optional s2c-assistive-v1 result JSON")
+    parser.add_argument("--rubric", type=Path, help="Optional deterministic browser rubric result JSON")
     args = parser.parse_args()
     payload = json.loads(args.audit_json.read_text(encoding="utf-8"))
     walkthrough = json.loads(args.walkthrough.read_text(encoding="utf-8")) if args.walkthrough else None
     signal_samples = [json.loads(path.read_text(encoding="utf-8")) for path in args.signals] if args.signals else None
     attention = json.loads(args.attention.read_text(encoding="utf-8")) if args.attention else None
     assistive = json.loads(args.assistive.read_text(encoding="utf-8")) if args.assistive else None
+    rubric = json.loads(args.rubric.read_text(encoding="utf-8")) if args.rubric else None
     result = render(payload, walkthrough, args.walkthrough.parent if args.walkthrough else None,
                     signal_samples, attention, args.attention.parent if args.attention else None,
-                    assistive, args.assistive.parent if args.assistive else None)
+                    assistive, args.assistive.parent if args.assistive else None, rubric)
     result = "\n".join(line.rstrip() for line in result.splitlines()) + "\n"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(result, encoding="utf-8")

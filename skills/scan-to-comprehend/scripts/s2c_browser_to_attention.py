@@ -8,6 +8,8 @@ import json
 from pathlib import Path
 import re
 
+from PIL import Image
+
 
 RGB = re.compile(r"^rgba?\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})(?:,\s*([\d.]+))?\)$")
 
@@ -43,12 +45,38 @@ def kind_for(node: dict) -> str | None:
     return None
 
 
-def project(snapshot: dict) -> dict:
+def painted_background_matches(image: Image.Image, box: dict, background: str) -> bool:
+    """Require the captured pixels to support a supplied solid CSS background."""
+    rgb = tuple(int(background[index:index + 2], 16) for index in (1, 3, 5))
+    left = max(0, int(box["x"]))
+    top = max(0, int(box["y"]))
+    right = min(image.width, int(box["x"] + box["width"]))
+    bottom = min(image.height, int(box["y"] + box["height"]))
+    if right - left < 2 or bottom - top < 2:
+        return False
+    matches = total = 0
+    for yi in range(1, 8):
+        y = top + (bottom - top - 1) * yi // 8
+        for xi in range(1, 8):
+            x = left + (right - left - 1) * xi // 8
+            sample = image.getpixel((x, y))[:3]
+            total += 1
+            matches += max(abs(sample[channel] - rgb[channel]) for channel in range(3)) <= 24
+    return matches / total >= 0.55
+
+
+def project(snapshot: dict, image_dir: Path | None = None) -> dict:
     if snapshot.get("schema") != "s2c-browser-capture/v1":
         raise ValueError("Expected s2c-browser-capture/v1")
     frames = []
     for frame in snapshot.get("frames", []):
         width, height = frame["viewport"]["width"], frame["viewport"]["height"]
+        screenshot = None
+        if image_dir is not None:
+            image_path = (image_dir / frame["image"]).resolve()
+            if not image_path.is_relative_to(image_dir.resolve()):
+                raise ValueError("Screenshot path must stay inside the capture directory")
+            screenshot = Image.open(image_path).convert("RGB")
         image_boxes = [node["box"] for node in frame["nodes"]
                        if node.get("tag") == "img" and node.get("in_viewport")]
         elements = []
@@ -66,6 +94,8 @@ def project(snapshot: dict) -> dict:
                        "label": (node.get("name") or node.get("text") or node.get("alt") or kind)[:120],
                        "x": round(x0, 2), "y": round(y0, 2),
                        "width": round(x1 - x0, 2), "height": round(y1 - y0, 2)}
+            if kind in {"heading", "text", "link", "button"}:
+                element["painted_text"] = bool((node.get("text") or "").strip())
             font_px = style.get("font_size")
             if isinstance(font_px, (int, float)) and font_px >= 1:
                 element["font_px"] = font_px
@@ -90,7 +120,8 @@ def project(snapshot: dict) -> dict:
                     if overlap >= area * 0.5 and image["width"] * image["height"] >= area:
                         over_image = True
                         break
-            if foreground and background and not over_image:
+            if foreground and background and not over_image and element.get("painted_text", True) and (
+                    screenshot is None or painted_background_matches(screenshot, element, background)):
                 element["foreground"] = foreground
                 element["background"] = background
             elements.append(element)
@@ -100,7 +131,7 @@ def project(snapshot: dict) -> dict:
                        "coordinate_width": width, "coordinate_height": height,
                        "captured_at": frame["captured_at"],
                        "provenance": "Chromium first-viewport DOM boxes; automatic mapping, not hand-verified; no face detection",
-                       "color_basis": "Computed opaque CSS colors on solid backgrounds only; image, gradient and opacity cases need review",
+                       "color_basis": "Computed opaque CSS colors confirmed against screenshot pixels where supplied; image, gradient, opacity and mismatched cases need review",
                        "elements": elements})
     if not frames:
         raise ValueError("Capture needs frames")
@@ -112,7 +143,7 @@ def main() -> None:
     parser.add_argument("snapshot", type=Path)
     parser.add_argument("--output", required=True, type=Path)
     args = parser.parse_args()
-    result = project(json.loads(args.snapshot.read_text(encoding="utf-8")))
+    result = project(json.loads(args.snapshot.read_text(encoding="utf-8")), args.snapshot.parent)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     print(args.output)

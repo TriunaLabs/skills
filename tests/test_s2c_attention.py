@@ -35,6 +35,7 @@ class AttentionBaselineTests(unittest.TestCase):
         bold = ATTENTION.text_contrast_spotcheck({**base, "font_px": 19, "font_weight": 700})
         self.assertEqual(bold["threshold"], 3.0)
         self.assertIsNone(ATTENTION.text_contrast_spotcheck({**base, "kind": "logo"}))
+        self.assertIsNone(ATTENTION.text_contrast_spotcheck({**base, "kind": "button", "painted_text": False}))
         self.assertEqual(ATTENTION.text_contrast_spotcheck({"kind": "link"})["status"], "needs_review")
 
     def test_render_and_held_out_comparison(self):
