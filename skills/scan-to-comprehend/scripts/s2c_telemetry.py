@@ -65,7 +65,7 @@ class Telemetry:
             from opentelemetry.sdk.trace import TracerProvider
             from opentelemetry.sdk.trace.export import BatchSpanProcessor, SpanExportResult
         except ImportError as error:
-            raise RuntimeError("Install requirements-otel.txt to use --otel") from error
+            raise RuntimeError("Install observability/requirements.txt to use --otel") from error
 
         class TrackingExporter(OTLPSpanExporter):
             success_count = 0

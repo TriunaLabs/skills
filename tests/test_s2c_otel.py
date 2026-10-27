@@ -18,7 +18,7 @@ if HAS_OTEL:
     HAS_OTEL = bool(importlib.util.find_spec("opentelemetry.sdk"))
 
 
-@unittest.skipUnless(HAS_OTEL, "install requirements-otel.txt to test OTLP export")
+@unittest.skipUnless(HAS_OTEL, "install the skill's observability/requirements.txt to test OTLP export")
 class S2COtelTests(unittest.TestCase):
     def test_stage_spans_are_linked_and_do_not_record_content(self):
         from opentelemetry.sdk.trace import TracerProvider

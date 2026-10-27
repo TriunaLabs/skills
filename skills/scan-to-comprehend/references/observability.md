@@ -7,7 +7,7 @@ The `scripts/s2c_run.py` orchestrator now runs the source audit, browser capture
 Install the optional packages from the repository root:
 
 ```powershell
-python -m pip install -r requirements-otel.txt
+python -m pip install -r skills/scan-to-comprehend/observability/requirements.txt
 ```
 
 Start a local `otelcol-contrib` Collector with `observability/collector.local.yaml` (resolve this path relative to the skill directory). The Collector accepts OTLP/HTTP on `127.0.0.1:4318` and applies an attribute allowlist before its local debug exporter. It is a development configuration; replace the debug exporter and review network binding, storage, access, and retention before using it with real accounts.
@@ -31,7 +31,7 @@ python skills/scan-to-comprehend/scripts/s2c_run.py `
   --otlp-endpoint http://127.0.0.1:4318/v1/traces
 ```
 
-The output directory must be new or empty. It contains `run.json`, `audit.json`, `capture/snapshot.json`, `assistive.json`, `browser-rubric.json`, optional `capture/attention.json`, and `report.html`. `run.json` records the run ID, trace ID, audit date, rubric version, and artifact names. The URL stays in that local manifest and report; it does not become a trace attribute. Protect and retain artifacts according to the later hosted account policy.
+For a skill-folder-only installation, install `observability/requirements.txt` from inside that folder. The output directory must be new or empty. It contains `run.json`, `audit.json`, `capture/snapshot.json`, `assistive.json`, `browser-rubric.json`, optional `capture/attention.json`, and `report.html`. `run.json` records the run ID, trace ID, audit date, rubric version, and artifact names. The URL stays in that local manifest and report; it does not become a trace attribute. Protect and retain artifacts according to the later hosted account policy.
 
 ## Trace contract
 
