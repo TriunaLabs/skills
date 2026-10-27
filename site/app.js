@@ -81,6 +81,7 @@ function show(s, button) {
   $('source').href=`https://github.com/TriunaLabs/skills/tree/main/skills/${s.name}`;
   $('raw').href=`skills/${s.name}/SKILL.md`;
   $('case-study').hidden = s.name !== 'scan-to-comprehend';
+  $('synthetic-demo').hidden = s.name !== 'scan-to-comprehend';
   $('tool-page').hidden = s.name !== 'scan-to-comprehend';
   $('install-skill').value=s.name;
   updateInstall();

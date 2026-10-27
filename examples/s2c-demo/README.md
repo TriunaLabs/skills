@@ -1,6 +1,8 @@
 # Synthetic S2C demo site
 
-This original, fictional site is a reproducible audit target. The home page inserts a sibling section and link with JavaScript, changes its canonical and description after render, and links to a deliberately missing `missing.html`. `corrected.html` keeps the sibling path and metadata in initial HTML. These are examples for testing report behavior, not claims that all JavaScript content is invisible to search engines.
+Open [the public audit walkthrough](https://triunalabs.github.io/skills/examples/s2c-demo/showcase.html) to see the initial-HTML comparison, route difference, and action plan before inspecting the fictional site.
+
+This original, fictional site is a reproducible audit target. The home page inserts a sibling section and link with JavaScript, changes its canonical and description after render, and has one clearly labeled test-only link to a deliberately missing `missing.html`. `corrected.html` keeps the sibling path and metadata in initial HTML. These are examples for testing report behavior, not claims that all JavaScript content is invisible to search engines.
 
 From the repository root, run `python examples/s2c-demo/run_demo.py`. It opens the owned fixture through a local `file:` URL, captures the page with the repository's Playwright setup, and writes a dated report under `tmp/`. No network request is needed. Install the repository's Node development dependencies and Playwright Chromium first. Use `--output PATH` to select a new or empty report directory; use `--skip-attention` to omit the experimental heatmap.
 

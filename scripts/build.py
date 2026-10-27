@@ -28,7 +28,8 @@ def build():
     demo = out / 'examples' / 's2c-demo'
     demo.mkdir(parents=True, exist_ok=True)
     for name in ('index.html', 'app.js', 'styles.css', 'programs.html', 'siblings.html',
-                 'sample.html', 'corrected.html'):
+                 'sample.html', 'corrected.html', 'favicon.svg', 'showcase.html',
+                 'showcase.css', 'showcase.js'):
         shutil.copy2(ROOT / 'examples' / 's2c-demo' / name, demo / name)
     (out / '.nojekyll').touch()
     (out / 'catalog.json').write_text(json.dumps(public_records, indent=2), encoding='utf-8')

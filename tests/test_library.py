@@ -47,6 +47,8 @@ class LibraryTests(unittest.TestCase):
         self.assertFalse((ROOT / 'dist/skills/decision-record').exists())
         self.assertFalse((ROOT / 'dist/skills/reproduce-bug').exists())
         self.assertTrue((ROOT / 'dist/assets/triunalabs-horizontal.svg').is_file())
+        self.assertTrue((ROOT / 'dist/examples/s2c-demo/showcase.html').is_file())
+        self.assertTrue((ROOT / 'dist/examples/s2c-demo/showcase.css').is_file())
         index = (ROOT / 'dist/index.html').read_text(encoding='utf-8')
         self.assertIn('Seven complete, inspectable workflows', index)
         self.assertIn('data-skill="answer-ready-web"', index)
