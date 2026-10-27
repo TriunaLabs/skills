@@ -30,6 +30,16 @@ The JSON output is suitable for a bounded API or MCP wrapper. A rendered-page wa
 
 The [assistive reading view](skills/scan-to-comprehend/references/assistive-view.md) captures Chromium accessibility-tree and observed Tab paths at desktop, mobile, and 320 px widths. Its [dated JobFitIQ report](site/case-studies/jobfitiq-assistive-view.html) embeds the screenshots and review candidates. It is a browser projection, not a screen-reader recording or WCAG conformance result. The raw snapshot and versioned JSON are retained beside the report for repeatable processing.
 
+The [reader projections](skills/scan-to-comprehend/references/reader-views.md) add deterministic crawler, passage retrieval, and cross-view gap panels to the same capture. An optional `--question` scores passages with local BM25; the runner exports `reader-views.json` beside its HTML report. These editorial views do not predict search ranking, AI citations, or observed gaze.
+
+The local S2C playground visualizes a versioned scoring profile: browser checklist points, crawler element weights, BM25 passage settings, and the cross-view gap threshold. Change rules before a URL run or create saved scoring revisions afterward without capturing the site again. The HTML report shows its exact profile and fingerprint. See [scoring profiles and BM25 inputs](skills/scan-to-comprehend/references/reader-views.md#scoring-profile-and-saved-revisions).
+
+The [page basics layer](skills/scan-to-comprehend/references/site-basics.md) adds one-run navigation timings, bounded same-origin link checks, broken in-page fragments, and contact/privacy/terms link discovery. Its results appear as separate review items, with coverage and limits visible; they do not change the S2C reading scores.
+
+The [robot visibility review](skills/scan-to-comprehend/references/robot-visibility.md) compares important phrases and links in raw HTML with one no-interaction rendered DOM, and screens index directives and `robots.txt`. Findings feed the final action plan. Add `--important "phrase"` to a URL run, or use `--html-file page.html` for a self-contained offline prototype. The report comes from the versioned `s2c_visualize.py` renderer and `assets/report-shell.css` template; no generative model is required.
+
+To try it locally after installing the audit dependencies, run `python playground/server.py` and open `http://127.0.0.1:8787/`. Runs and their scoring revisions are saved under the ignored `.playground-runs/` directory. A `?run=<id>` local link reopens a saved report after restarting the server. This loopback test server is not a public deployment.
+
 For owned pages, the optional [section interaction probe](skills/scan-to-comprehend/references/interaction-signals.md) collects foreground viewport exposure, mouse hover, clicks, and taps after the host starts it. It has no camera, network request, or persistent storage. Pass consented session exports to `s2c_visualize.py --signals` to add a separately labeled observed-behavior section to the HTML report. These signals are not measured gaze or comprehension. The [attention baseline](skills/scan-to-comprehend/references/attention-baseline.md) adds a separate WCAG text contrast spot check and a held-out no-contrast comparison to test whether contrast contributes predictive value. The [AGD-to-audit guide](skills/scan-to-comprehend/references/agd-to-audit.md) translates the graphic-design attention paper into page observations, hypotheses, and reader checks without claiming to run its model.
 
 ## Local development
@@ -47,6 +57,10 @@ python -m http.server 4173 --directory dist
 Open http://localhost:4173. The generated `dist/` contains the website, JSON catalog, and browsable skill files. Sources live in `site/` and `skills/`; never edit generated output. The build does not run skill scripts.
 
 The optional S2C browser probe has a separate Node test: `node --test tests/s2c_section_signals.test.cjs`.
+
+### Local S2C audit playground
+
+Run `python playground/server.py` and open `http://127.0.0.1:8787/`. Enter a public HTML URL or upload one self-contained `.html` prototype, plus an optional reader question and up to five important phrases. The site runs the source, browser, assistive, rubric, attention, crawler, robot visibility, retrieval, gap, and HTML report stages of `s2c_run.py`. View buttons navigate the report and a JSON link exposes the versioned projections. Uploaded HTML renders with JavaScript and external requests disabled; its extracted evidence and report remain in the ignored `.playground-runs/` directory until manually removed. The server listens on loopback only. This test interface is separate from a hosted anonymous service. It does not provide accounts, visitor quotas, ownership verification, or export controls. Review a page's terms before capturing it. A site can refuse automated capture.
 
 ## Repository layout
 

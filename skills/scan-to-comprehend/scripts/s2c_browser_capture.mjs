@@ -10,16 +10,28 @@ const value = (flag, fallback) => {
   return index < 0 ? fallback : args[index + 1];
 };
 const url = value('--url');
+const htmlStdin = args.includes('--html-stdin');
 const out = value('--out');
 const auditDate = value('--audit-date', new Date().toISOString().slice(0, 10));
-if (!url || !out || !/^(https?:\/\/|file:\/\/)/.test(url)) {
-  console.error('Usage: node s2c_browser_capture.mjs --url https://example.com/ --out capture-dir');
+if (!out || (htmlStdin === Boolean(url)) || (url && !/^(https?:\/\/|file:\/\/)/.test(url))) {
+  console.error('Usage: node s2c_browser_capture.mjs (--url https://example.com/ | --html-stdin) --out capture-dir');
   process.exit(2);
 }
 if (!/^\d{4}-\d{2}-\d{2}$/.test(auditDate) || Number.isNaN(Date.parse(`${auditDate}T00:00:00Z`))) {
   throw new Error('--audit-date must be YYYY-MM-DD');
 }
 const target = resolve(out);
+let prototype = null;
+if (htmlStdin) {
+  const chunks = [];
+  let bytes = 0;
+  for await (const chunk of process.stdin) {
+    bytes += chunk.length;
+    if (bytes > 2_000_000) throw new Error('HTML prototype exceeds 2 MB');
+    chunks.push(chunk);
+  }
+  prototype = Buffer.concat(chunks).toString('utf8');
+}
 const viewports = [
   { id: 'desktop', width: 1265, height: 712 },
   { id: 'mobile', width: 375, height: 812 },
@@ -35,9 +47,15 @@ try {
 const frames = [];
 try {
   for (const viewport of viewports) {
-    const context = await browser.newContext({ viewport, deviceScaleFactor: 1, reducedMotion: 'reduce' });
+    const context = await browser.newContext({ viewport, deviceScaleFactor: 1, reducedMotion: 'reduce',
+      javaScriptEnabled: !htmlStdin, serviceWorkers: 'block' });
     const page = await context.newPage();
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    if (htmlStdin) {
+      await page.route('**/*', route => route.abort());
+      await page.setContent(prototype, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    } else {
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
+    }
     await page.locator('body').waitFor();
     await page.evaluate(() => document.fonts?.ready);
     await page.waitForTimeout(800);
@@ -79,6 +97,21 @@ try {
       });
       return {
         nodes,
+        anchor_ids: [...document.querySelectorAll('[id]')].map(item => item.id).filter(Boolean).slice(0, 5000),
+        anchor_names: [...document.querySelectorAll('a[name]')].map(item => item.getAttribute('name')).filter(Boolean).slice(0, 5000),
+        performance: (() => {
+          const nav = performance.getEntriesByType('navigation')[0];
+          const resources = performance.getEntriesByType('resource');
+          return {
+            basis: 'Single Chromium navigation in this audit environment; not field Core Web Vitals',
+            ttfb_ms: nav && nav.responseStart > 0 ? Math.round(nav.responseStart - nav.requestStart) : null,
+            dom_content_loaded_ms: nav?.domContentLoadedEventEnd ? Math.round(nav.domContentLoadedEventEnd) : null,
+            load_event_ms: nav?.loadEventEnd ? Math.round(nav.loadEventEnd) : null,
+            resource_count: resources.length,
+            measured_transfer_bytes: resources.reduce((sum, item) => sum + (item.transferSize || 0), 0),
+            measured_transfer_count: resources.filter(item => item.transferSize > 0).length,
+          };
+        })(),
         document_width: document.documentElement.scrollWidth,
         client_width: document.documentElement.clientWidth,
         head: { title: document.title, lang: document.documentElement.lang,
@@ -149,10 +182,11 @@ try {
       const match = nodeById.get(step.id);
       if (match) match.tab_index = index;
     }
-    frames.push({ id: viewport.id, url: page.url(), captured_at: capturedAt,
+    frames.push({ id: viewport.id, url: htmlStdin ? 'uploaded:prototype' : page.url(), captured_at: capturedAt,
       viewport: { width: viewport.width, height: viewport.height }, dpr: 1, image,
       ...dom, ax_path: axPath, focus_path: focusPath, focus_stop: focusStop,
-      capture_basis: 'Chromium rendered DOM, CDP accessibility tree, observed Tab traversal',
+      capture_basis: htmlStdin ? 'Inline HTML in Chromium with JavaScript disabled and external requests blocked' :
+        'Chromium rendered DOM, CDP accessibility tree, observed Tab traversal',
       limitations: ['AX order is browser-reported, not a screen reader speech trace.',
         'Tab traversal may omit elements in shadow roots or cross-origin frames.',
         'A single viewport and state do not establish WCAG conformance.'] });
@@ -161,6 +195,7 @@ try {
 } finally {
   await browser.close();
 }
-const result = { schema: 's2c-browser-capture/v1', url, audited_on: auditDate, frames };
+const result = { schema: 's2c-browser-capture/v1', url: htmlStdin ? 'uploaded:prototype' : url,
+  source_kind: htmlStdin ? 'html' : 'url', audited_on: auditDate, frames };
 await writeFile(join(target, 'snapshot.json'), JSON.stringify(result, null, 2) + '\n');
 console.log(join(target, 'snapshot.json'));

@@ -1,6 +1,6 @@
 ---
 name: scan-to-comprehend
-description: "Design or audit information-dense websites, articles, and infographics using task-aware scanning patterns. Includes a source preflight, visual walkthrough, assistive reading view, and experimental attention heatmap; does not measure gaze or comprehension."
+description: "Design or audit information-dense websites, articles, and infographics using task-aware scanning patterns. Includes source, assistive, crawler, retrieval, and experimental attention views; does not measure gaze or comprehension."
 license: MIT
 ---
 
@@ -32,6 +32,14 @@ For a browser-reported accessibility-tree path, observed Tab order, and 320 px r
 For repeatable warnings and an editable point rubric, follow the [browser checklist](references/browser-rubric.md). Render its rule-by-rule evidence and scored/assessed denominator next to the prioritized walkthrough actions. The checklist cannot judge whether alt text is accurate or whether a CTA sets the right expectation; review those with page evidence.
 
 For a single repeatable local run across the source audit, browser capture or replay, assistive view, optional attention layer, rubric, and HTML report, use `python scripts/s2c_run.py --url https://example.com/ --output audit-dir`. Its optional `--otel` mode exports privacy-bounded stage traces to an explicitly configured OTLP/HTTP endpoint and records the trace ID in `run.json`; read [observability](references/observability.md) before enabling it. The ordinary skill and standalone scripts send no telemetry.
+
+For the adjacent technical hygiene pass, read [page basics](references/site-basics.md). A fresh URL run records synthetic navigation timings, checks in-page fragments, samples up to eight same-origin links with `HEAD`, and reviews whether contact, privacy, and terms routes are discoverable from the captured page. Show these findings separately from S2C reading scores. A 404/410 `HEAD` response needs confirmation; no link on one page does not prove a policy or contact page is absent sitewide.
+
+For content the page owner wants crawlers to find, read [robot visibility](references/robot-visibility.md). Add up to five `--important` phrases to a URL run, or let the script select visible headings. It compares initial HTML with the no-interaction rendered DOM, screens `noindex`, `nofollow`, and same-origin `robots.txt` rules, and labels rendering-dependent text and links for review. The report ends with an action plan drawn from all deterministic findings. This is not a Googlebot simulation or proof of indexing. For a single self-contained prototype, `--html-file page.html` renders offline with scripts and external requests blocked; do not treat its timing or link status as a live website audit.
+
+For a comparison of how different readers encounter the same page, use the [reader projections](references/reader-views.md). The runner now emits crawler, retrieval, and gap views beside attention and assistive, plus `reader-views.json`. Supply `--question` for a task-specific local BM25 passage match; otherwise retrieval uses a stated position and length prior. Treat crawler weights as editorial, retrieval as lexical matching, and the gap as disagreement among rules. None predicts ranking, citations, gaze, or reader behavior.
+
+When a user wants to inspect or tune scoring, use the versioned `--scoring-profile` JSON and the [scoring profile guidance](references/reader-views.md#scoring-profile-and-saved-revisions). The local playground visualizes the controls before a run and can rescore a saved capture afterward while preserving the original report and each revision. Explain what BM25 actually indexes: only retained chunks from the captured page. Keep weight changes and their fingerprint with the dated report. Do not imply that editorial weight changes recalibrate the attention model or validate a behavioral outcome.
 
 When the user asks to apply the AGD visual-attention paper to a particular page, use the [AGD-to-audit guide](references/agd-to-audit.md). Capture the task and viewport, inspect competing components, and write each finding as observed feature → attention hypothesis → proposed change → disconfirming check. AGD's free-viewing results do not establish task success or supply coefficients for the S2C heatmap.
 

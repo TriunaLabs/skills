@@ -13,6 +13,9 @@ import re
 from statistics import median
 from urllib.parse import urlsplit
 
+import s2c_browser_rubric
+import s2c_scoring_profile
+
 
 def escaped(value: object) -> str:
     return html.escape(str(value), quote=True)
@@ -63,9 +66,151 @@ def heading_map(headings: list[object]) -> str:
     return "<ol class='outline'>" + "".join(rows) + "</ol>"
 
 
+def site_basics_html(result: dict) -> str:
+    if result.get("schema") != "s2c-site-basics/v1":
+        raise ValueError("Expected s2c-site-basics/v1")
+    performance = result.get("performance") or []
+    performance_rows = []
+    for item in performance:
+        def timing(key: str) -> str:
+            value = item.get(key)
+            return f"{escaped(value)} ms" if isinstance(value, (int, float)) and not isinstance(value, bool) else "not captured"
+        performance_rows.append(
+            f"<tr><th scope='row'>{escaped(item.get('viewport', 'viewport'))}</th>"
+            f"<td>{timing('ttfb_ms')}</td><td>{timing('dom_content_loaded_ms')}</td>"
+            f"<td>{timing('load_event_ms')}</td><td>{escaped(item.get('resource_count', '—'))}</td></tr>")
+    checks = "".join(
+        f"<li class='basic-check {escaped(item.get('status', 'review'))}'><strong>{escaped(item.get('label', 'Check'))}</strong>"
+        f"<span>{escaped(item.get('status', 'review'))}</span><p>{escaped(item.get('detail', ''))}</p>"
+        + (f"<p class='next'>Next: {escaped(item.get('action', 'Review this result.'))}</p>"
+           if item.get("status") != "found" else "") + "</li>"
+        for item in result.get("checks", []))
+    links = "".join(
+        f"<tr><td>{escaped(item.get('url', ''))}</td><td>{escaped(item.get('status') if item.get('status') is not None else '—')}</td>"
+        f"<td>{escaped(item.get('result', 'inconclusive'))}</td></tr>"
+        for item in result.get("link_probes", []))
+    fragments = "".join(
+        f"<li>{escaped(item.get('label') or item.get('href', 'fragment'))}: {escaped(item.get('result', 'not_checked'))}</li>"
+        for item in result.get("fragment_checks", []) if item.get("result") == "broken_fragment")
+    summary = result.get("link_summary") or {}
+    boundary = ("Uploaded HTML is rendered with scripts disabled and external requests blocked. "
+                "Network timing and live link status are unavailable. Contact and policy links are markup discovery only."
+                if result.get("source_kind") == "html" else
+                "One captured page. Timings are synthetic navigation observations from this audit environment, "
+                "not field Core Web Vitals. Missing contact or legal links are discovery review items, "
+                "not proof those pages do not exist.")
+    return (
+        "<section class='site-basics' id='site-basics'><p class='eyebrow'>PAGE BASICS / SEPARATE FROM S2C SCORING</p>"
+        "<h2>Performance, links, and public information</h2>"
+        f"<p class='boundary'>{escaped(boundary)}</p>"
+        "<h3>Navigation signals</h3><div class='basic-scroll'><table><thead><tr><th>Viewport</th><th>Response wait</th>"
+        "<th>DOM ready</th><th>Load event</th><th>Resources seen</th></tr></thead><tbody>"
+        + "".join(performance_rows) + "</tbody></table></div>"
+        "<p class='basic-note'>Response wait uses responseStart − requestStart. Resource counts are entries observed by this browser, "
+        "not total page weight; cross-origin transfer sizes may be unavailable.</p>"
+        "<h3>Contact and policy discovery</h3><ul class='basic-checks'>" + checks + "</ul>"
+        f"<h3>Link sample</h3><p>{escaped(summary.get('sampled', 0))} same-origin URL(s) checked with HEAD; "
+        f"{escaped(summary.get('possible_broken', 0))} possible 404/410 link(s); "
+        f"{escaped(summary.get('broken_fragments', 0))} broken in-page fragment(s). "
+        "Redirects and blocked HEAD requests are inconclusive; external links and unselected links were not checked.</p>"
+        + ("<div class='basic-scroll'><table><thead><tr><th>URL</th><th>HTTP</th><th>Result</th></tr></thead><tbody>"
+           + links + "</tbody></table></div>" if links else "<p>No HTTP links probed in this run.</p>")
+        + ("<ul>" + fragments + "</ul>" if fragments else "")
+        + "</section>")
+
+
+def robot_visibility_html(result: dict) -> str:
+    if result.get("schema") != "s2c-robot-visibility/v1":
+        raise ValueError("Expected s2c-robot-visibility/v1")
+    rows = "".join(
+        f"<tr><th scope='row'>{escaped(item.get('phrase', ''))}</th>"
+        f"<td>{'yes' if item.get('source') else 'no'}</td><td>{'yes' if item.get('rendered') else 'no'}</td>"
+        f"<td>{escaped(item.get('status', ''))}</td></tr>" for item in result.get("phrases", []))
+    checks = "".join(
+        f"<li class='robot-check {escaped(item.get('status', 'review'))}'><strong>{escaped(item.get('title', 'Check'))}</strong>"
+        f"<p>{escaped(item.get('evidence', ''))}</p><p><b>Suggested action:</b> {escaped(item.get('action', ''))}</p></li>"
+        for item in result.get("checks", []))
+    return ("<section class='robot-visibility' id='robot-visibility'><p class='eyebrow'>ROBOT VISIBILITY / RAW VS RENDERED</p>"
+            "<h2>Can a crawler find the important information?</h2>"
+            "<p class='boundary'>This compares the initial HTML with one Chromium capture before clicks or scrolling. "
+            "Google can render JavaScript; a rendered-only result is a dependency to verify, not proof of invisibility.</p>"
+            f"<p>Watch list: {escaped(result.get('important_basis', 'first visible headings'))}. "
+            f"robots.txt: {escaped(result.get('robots_txt_status', 'not checked'))}.</p>"
+            + ("<ul class='robot-checks'>" + checks + "</ul>" if checks else "<p>No visibility risk flagged by these limited checks.</p>")
+            + ("<div class='basic-scroll'><table><thead><tr><th>Watched phrase</th><th>Initial HTML</th>"
+               "<th>Rendered DOM</th><th>Result</th></tr></thead><tbody>" + rows + "</tbody></table></div>" if rows else "")
+            + ("<p><b>Rendered-only links:</b> " + ", ".join(escaped(link) for link in result.get("rendered_only_links", [])[:8]) + "</p>"
+               if result.get("rendered_only_links") else "")
+            + ("<p><b>Potentially blocked CSS/JS:</b> " + ", ".join(escaped(link) for link in result.get("blocked_assets", [])[:8]) + "</p>"
+               if result.get("blocked_assets") else "")
+            + "<p class='basic-note'>Crawler-specific confirmation belongs in the target search engine's URL Inspection tool. "
+            "This screen does not establish indexing or search ranking.</p></section>")
+
+
+def collect_actions(report: dict, rubric: dict | None, basics: dict | None, robot: dict | None) -> list[tuple[str, str, str, str]]:
+    actions = []
+    if rubric:
+        for rule in rubric.get("rules", []):
+            if rule.get("status") in ("warning", "review"):
+                actions.append((rule["status"], rule.get("title", "Browser rule"),
+                                "; ".join(str(value) for value in rule.get("evidence", [])[:2]),
+                                rule.get("suggestion", "Inspect the captured page.")))
+    suggestions = {item.get("code"): item.get("action") for item in report.get("suggestions", [])}
+    for finding in report.get("findings", []):
+        code = finding.get("code", "")
+        actions.append((finding.get("level", "review"), code.replace("_", " ").title(),
+                        finding.get("message", ""), suggestions.get(code) or "Inspect the source finding."))
+    if basics:
+        for check in basics.get("checks", []):
+            if check.get("status") == "review":
+                actions.append(("review", check.get("label", "Page information"),
+                                check.get("detail", ""), check.get("action", "Inspect the site.")))
+        for check in basics.get("link_probes", []):
+            if check.get("result") == "possible_broken":
+                actions.append(("review", "Possible broken page link", check.get("url", ""),
+                                "Confirm this 404/410 with a normal browser visit, then repair the destination or link."))
+        for check in basics.get("fragment_checks", []):
+            if check.get("result") == "broken_fragment":
+                actions.append(("warning", "Broken in-page destination", check.get("href", ""),
+                                "Update the fragment target or add the matching element ID."))
+    if robot:
+        for check in robot.get("checks", []):
+            if check.get("status") in ("warning", "review"):
+                actions.append((check["status"], check.get("title", "Robot visibility"),
+                                check.get("evidence", ""), check.get("action", "Verify crawler access.")))
+    return actions
+
+
+def priority_actions_html(actions: list[tuple[str, str, str, str]]) -> str:
+    if not actions:
+        return ""
+    cards = "".join(
+        f"<li><span class='action-kind {escaped(kind)}'>{escaped(kind)}</span><h3>{escaped(title)}</h3>"
+        f"<p>{escaped(evidence)}</p><p class='action-next'><b>Suggested action</b> {escaped(next_step)}</p></li>"
+        for kind, title, evidence, next_step in actions[:8])
+    return ("<section class='priority-actions' id='actions'><p class='eyebrow'>PRIORITY ACTIONS / EVIDENCE FIRST</p>"
+            "<h2>What deserves attention</h2><p>Review these captured signals before changing the page. "
+            "A missing link on this page is a discovery gap, not a sitewide finding.</p><ol>" + cards + "</ol></section>")
+
+
+def action_plan_html(actions: list[tuple[str, str, str, str]]) -> str:
+    rows = "".join(
+        f"<li><span class='action-kind {escaped(kind)}'>{escaped(kind)}</span><div><h3>{escaped(title)}</h3>"
+        f"<p><b>Evidence:</b> {escaped(evidence)}</p><p><b>Do:</b> {escaped(next_step)}</p></div></li>"
+        for kind, title, evidence, next_step in actions)
+    return ("<section class='action-plan' id='action-plan'><p class='eyebrow'>FINAL PAGE / ACTION PLAN</p>"
+            "<h2>Fix, then verify</h2><p>Use this list for triage. Re-run the same rule version and viewport after a change; "
+            "confirm effects with the appropriate browser, crawler tool, or reader task.</p>"
+            + ("<ol>" + rows + "</ol>" if rows else "<p>No automatic action was flagged. Check the intended reader task with people.</p>")
+            + "</section>")
+
+
 def report_html(report: dict[str, object], walkthrough: str = "", audited_on: object = None,
                 signals: str = "", attention: str = "", assistive: str = "", rubric: str = "",
-                rubric_teaser: str = "") -> str:
+                rubric_teaser: str = "", reader_views: str = "", contrast: str = "",
+                scoring_profile: str = "", site_basics: str = "", priority_actions: str = "",
+                robot_visibility: str = "", action_plan: str = "") -> str:
+    visual_audit = bool(walkthrough or attention or assistive or rubric or reader_views or site_basics or robot_visibility)
     estimate = report.get("estimated_cognitive_load", {})
     if not isinstance(estimate, dict):
         estimate = {}
@@ -89,27 +234,45 @@ def report_html(report: dict[str, object], walkthrough: str = "", audited_on: ob
         iso_date, readable_date = audit_date(audited_on)
         date_line = f"<p class='audit-date'><b>Audit date:</b> <time datetime='{iso_date}'>{readable_date}</time></p>"
     links = []
+    if priority_actions:
+        links.append("<a href='#actions'>Priority actions</a>")
     if walkthrough:
         links.append("<a href='#walkthrough'>Reviewer walkthrough</a>")
     if attention:
-        links.append("<a href='#attention'>Attention and contrast</a>")
+        links.append("<a href='#attention'>Attention</a>")
     if assistive:
         links.append("<a href='#assistive'>Reading and Tab paths</a>")
+    if reader_views:
+        links.extend(("<a href='#crawler'>Crawler</a>", "<a href='#retrieval'>Retrieval</a>", "<a href='#gap'>Gaps</a>"))
+    if contrast:
+        links.append("<a href='#contrast'>Contrast</a>")
     if rubric:
         links.append("<a href='#rubric'>Deterministic checklist</a>")
+    if scoring_profile:
+        links.append("<a href='#scoring-profile'>Scoring profile</a>")
+    if site_basics:
+        links.append("<a href='#site-basics'>Page basics</a>")
+    if robot_visibility:
+        links.append("<a href='#robot-visibility'>Robot visibility</a>")
+    if action_plan:
+        links.append("<a href='#action-plan'>Action plan</a>")
     nav = f"<nav class='report-nav' aria-label='Report sections'>{' · '.join(links)}</nav>" if links else ""
     return f"""
     <article class="report" aria-label="Audit for {escaped(report.get('source', 'unknown source'))}">
-      <header>
-        <p class="eyebrow">SCAN TO COMPREHEND / {'VISUAL AUDIT' if walkthrough else 'SOURCE PREFLIGHT'}</p>
+      <header id="overview">
+        <p class="eyebrow">SCAN TO COMPREHEND / {'VISUAL AUDIT' if visual_audit else 'SOURCE PREFLIGHT'}</p>
         <h1>{escaped(report.get('source', 'Unknown source'))}</h1>
         {date_line}
-        <p class="subtitle">{'A rendered-page walkthrough followed by source and browser checks.' if walkthrough else 'A source check followed by questions for rendered and reader review.'}</p>
+        <p class="subtitle">{'Captured page evidence, browser checks, and source structure.' if visual_audit else 'A source check followed by questions for rendered and reader review.'}</p>
         {nav}
       </header>
       {rubric_teaser}
+      {priority_actions}
       {walkthrough}
       {rubric}
+      {scoring_profile}
+      {site_basics}
+      {robot_visibility}
       <section class="summary" id="summary" aria-label="Source-only structural friction estimate">
         <div class="score"><strong>{escaped(score)}</strong><span>/ 100</span></div>
         <div class="score-context">
@@ -128,6 +291,8 @@ def report_html(report: dict[str, object], walkthrough: str = "", audited_on: ob
       </div>
       {attention}
       {assistive}
+      {reader_views}
+      {contrast}
       {signals}
       <div class="columns">
         <section><h2>Source heading map</h2>{heading_map(headings)}</section>
@@ -138,6 +303,7 @@ def report_html(report: dict[str, object], walkthrough: str = "", audited_on: ob
         <section><h2>Narrow strengths</h2>{item_list(strengths, 'No source strength recorded.')}</section>
         <section><h2>Checks still needed</h2>{item_list(next_checks, 'No next checks supplied.')}</section>
       </div>
+      {action_plan}
       <footer>{escaped(report.get('limit', 'Source-only result.'))}</footer>
     </article>"""
 
@@ -559,11 +725,134 @@ def browser_rubric_html(result: dict[str, object]) -> str:
     )
 
 
+def scoring_profile_html(profile: dict) -> str:
+    profile = s2c_scoring_profile.validate(profile)
+    browser = "".join(f"<tr><th scope='row'>{escaped(s2c_browser_rubric.RULES[key])}</th><td>{value} points</td></tr>"
+                      for key, value in profile["browser_weights"].items())
+    crawler = "".join(f"<tr><th scope='row'>{escaped(s2c_scoring_profile.CRAWLER_LABELS[key])}</th><td>{escaped(value)}</td></tr>"
+                      for key, value in profile["crawler_weights"].items())
+    retrieval = profile["retrieval"]
+    return ("<section class='scoring-profile' id='scoring-profile'><p class='eyebrow'>SCORING PROFILE / "
+            f"{escaped(profile['schema'])}</p><h2>How this report was weighted</h2>"
+            f"<p>Profile fingerprint: <code>{s2c_scoring_profile.fingerprint(profile)}</code>. Browser points sum to 100; "
+            "review and not-checked rules stay outside the assessed denominator. These weights change an editorial checklist, not the evidence or a measured outcome.</p>"
+            "<div class='profile-columns'><div><h3>Browser checklist points</h3><table><tbody>" + browser + "</tbody></table></div>"
+            "<div><h3>Crawler element weights</h3><table><tbody>" + crawler + "</tbody></table></div></div>"
+            f"<p><b>Retrieval:</b> BM25 k1={escaped(retrieval['k1'])}, b={escaped(retrieval['b'])}, "
+            f"split target {escaped(retrieval['max_words'])} words at paragraph boundaries (a single paragraph can exceed it). With no question, passage length target is "
+            f"{escaped(retrieval['length_target'])} words and position priors are "
+            f"{escaped(', '.join(str(x) for x in retrieval['position_priors']))}. "
+            f"<b>Gap:</b> rank difference threshold {escaped(profile['gap']['rank_threshold'])}.</p>"
+            "<p class='boundary'>Source-friction and experimental attention formulas are fixed in this profile. "
+            "Changing weights or the question from a saved capture creates a new report revision; it does not change the original capture.</p></section>")
+
+
+def reader_views_html(result: dict[str, object], asset_dir: Path) -> str:
+    """Render three projections of the same saved Chromium frames."""
+    if result.get("schema") != "s2c-reader-views/v1" or not result.get("frames"):
+        raise ValueError("Expected non-empty s2c-reader-views/v1")
+
+    def map_html(frame: dict, items: list[dict], kind: str) -> str:
+        viewport = frame["viewport"]
+        width, height = int(viewport["width"]), int(viewport["height"])
+        image_name = frame["image"]
+        if not isinstance(image_name, str) or Path(image_name).name != image_name:
+            raise ValueError("Reader view image must be a capture filename")
+        image_path = (asset_dir / image_name).resolve()
+        if not image_path.is_relative_to(asset_dir.resolve()):
+            raise ValueError("Reader view image must stay inside the capture directory")
+        maximum = max((float(item.get("weight", item.get("relative_score", abs(item.get("difference", 0))))) for item in items), default=0) or 1
+        marks = []
+        for item in items:
+            if not item.get("in_viewport", True) or not isinstance(item.get("box"), dict):
+                continue
+            box = item["box"]
+            try:
+                x, y = max(0, float(box["x"])), max(0, float(box["y"]))
+                w, h = max(0, float(box["width"])), max(0, float(box["height"]))
+            except (KeyError, TypeError, ValueError):
+                continue
+            if x >= width or y >= height or w <= 0 or h <= 0:
+                continue
+            if item.get("flag"):
+                marks.append(f"<rect x='{x:.1f}' y='{y:.1f}' width='{w:.1f}' height='{h:.1f}' fill='url(#hatch-{kind}-{escaped(frame['id'])})' stroke='#ab491d' stroke-width='3'/>")
+                continue
+            value = float(item.get("weight", item.get("relative_score", abs(item.get("difference", 0)))))
+            if value <= 0:
+                continue
+            color = ("#c52e28" if float(item.get("difference", 0)) >= 0 else "#1558be") if kind == "gap" else "#dc6927"
+            opacity = 0.18 + 0.48 * value / maximum
+            marks.append(f"<rect x='{x:.1f}' y='{y:.1f}' width='{w:.1f}' height='{h:.1f}' rx='3' fill='{color}' fill-opacity='{opacity:.2f}' stroke='{color}' stroke-opacity='.9' stroke-width='2'/>")
+        pattern = f"<defs><pattern id='hatch-{kind}-{escaped(frame['id'])}' patternUnits='userSpaceOnUse' width='6' height='6' patternTransform='rotate(45)'><line x1='0' y1='0' x2='0' y2='6' stroke='#ab491d' stroke-width='3'/></pattern></defs>"
+        return (f"<div class='reader-map' style='max-width:min(100%,{width}px)'><img src='{screenshot_uri(image_path)}' alt='{escaped(frame['id'])} page capture'>"
+                f"<svg viewBox='0 0 {width} {height}' aria-hidden='true'>{pattern}{''.join(marks)}</svg></div>")
+
+    def frame_title(frame: dict) -> str:
+        return f"<h3>{escaped(frame['id'])} · {escaped(frame['viewport']['width'])} × {escaped(frame['viewport']['height'])} CSS px</h3>"
+
+    crawler_rows, retrieval_rows, gap_rows = [], [], []
+    for frame in result["frames"]:
+        crawler = frame["crawler"]
+        crawler_nodes = crawler["nodes"]
+        top = sorted((row for row in crawler_nodes if row["weight"] > 0), key=lambda row: -row["weight"])[:8]
+        flags = [row for row in crawler_nodes if row.get("flag") and row.get("in_viewport")]
+        checks = "".join(f"<li><b>{escaped(c['label'])}:</b> {escaped(c['status'])} · {escaped(c['detail'])}</li>" for c in crawler["checks"])
+        crawler_rows.append(f"<div class='reader-frame'>{frame_title(frame)}"
+                            + map_html(frame, crawler_nodes, "crawler")
+                            + "<p class='map-key'>Orange: relative editorial index weight. Hatched: visible content without a captured name or alt.</p>"
+                            + "<h4>Highest rule weights</h4><ol>"
+                            + "".join(f"<li><b>{escaped(row['label'])}</b> · {row['weight']:.2f} · {escaped(row['rule'])}</li>" for row in top)
+                            + "</ol><h4>Warnings</h4><ul>"
+                            + ("".join(f"<li>{escaped(row['label'])}: {escaped(row['rule'])}</li>" for row in flags[:8]) or "<li>None in this viewport.</li>")
+                            + f"</ul><h4>Checks</h4><ul>{checks}</ul></div>")
+
+        retrieval = frame["retrieval"]
+        chunks = sorted(retrieval["chunks"], key=lambda chunk: -chunk["relative_score"])
+        boxes = [{"id": box["id"], "box": box["box"], "in_viewport": box["in_viewport"],
+                  "relative_score": chunk["relative_score"]} for chunk in chunks for box in chunk["boxes"]]
+        chunk_rows = "".join(f"<li><b>{escaped(chunk['heading'] or 'Opening text')}</b> · {chunk['word_count']} words · score {chunk['relative_score']:.2f}"
+                             + (f" · matched: {escaped(', '.join(chunk['matched_terms']))}" if chunk["matched_terms"] else "")
+                             + f"<p>{escaped(chunk['text'][:250])}</p></li>" for chunk in chunks[:8])
+        retrieval_rows.append(f"<div class='reader-frame'>{frame_title(frame)}"
+                              + map_html(frame, boxes, "retrieval")
+                              + f"<p class='map-key'>Orange: relative passage score. {len(retrieval['removed'])} captured boilerplate nodes removed. {retrieval['main_word_count']} retained words in {len(chunks)} chunks.</p>"
+                              + f"<h4>Top passages</h4><ol>{chunk_rows or '<li>No retained text in this capture.</li>'}</ol></div>")
+
+        gap = frame["gap"]
+        if gap["available"]:
+            comparisons = gap["comparisons"][:8]
+            gap_rows.append(f"<div class='reader-frame'>{frame_title(frame)}"
+                            + map_html(frame, comparisons, "gap")
+                            + f"<p class='map-key'>Red: attention estimate higher. Blue: other reader higher. Compared {gap['compared_nodes']} mapped nodes; {escaped(gap.get('rank_threshold', 0.4))} rank-percentile threshold.</p>"
+                            + "<h4>Largest differences</h4><ol>"
+                            + ("".join(f"<li><b>{escaped(row['label'])}</b> · {escaped(row['reader'])} · {escaped(row['direction'])} ({abs(row['difference']):.2f}) · {escaped(row['reason'])}</li>" for row in comparisons) or "<li>No difference crossed the threshold in this viewport.</li>")
+                            + "</ol></div>")
+        else:
+            gap_rows.append(f"<div class='reader-frame'>{frame_title(frame)}<p>{escaped(gap['reason'])}</p></div>")
+
+    question = result.get("question") or "No question: position and passage length prior"
+    retrieval_mode = result["frames"][0]["retrieval"]["mode"]
+    return ("<section class='reader-section' id='crawler'><p class='eyebrow'>CRAWLER / S2C-CRAWLER-V1</p><h2>What can an indexer find?</h2>"
+            "<p>Basis: captured DOM roles, text, head metadata, and element boxes. Index weights are editorial rules, not search ranking. The map shows what this capture offers an indexer and where it appears on screen; it does not predict traffic or snippets. Network files and structured data were not inspected.</p>"
+            + "".join(crawler_rows) + "</section>"
+            + "<section class='reader-section' id='retrieval'><p class='eyebrow'>RETRIEVAL / S2C-RETRIEVAL-V1</p><h2>Which passages match a question?</h2>"
+            f"<p><b>Question:</b> {escaped(question)}. Basis: boilerplate-stripped captured text, heading chunks, and {'local BM25' if retrieval_mode == 'bm25' else 'fixed position and length priors'}. The score is relative within each viewport. This does not predict citation, inclusion, or ranking in any AI product.</p>"
+            + "".join(retrieval_rows) + "</section>"
+            + "<section class='reader-section' id='gap'><p class='eyebrow'>CROSS-VIEW / S2C-GAP-V1</p><h2>Where do these projections disagree?</h2>"
+            "<p>Basis: rank differences between the uncalibrated attention estimate and crawler weights, passage scores, or the first ten accessibility reading steps. These are element-rank comparisons, not measured pixel saliency or reader behavior. The attention estimate has not beaten a position-only baseline on held-out webpages.</p>"
+            + "".join(gap_rows) + "</section>")
+
+
 def render(payload: dict[str, object], walkthrough: dict[str, object] | None = None,
            asset_dir: Path | None = None, signal_samples: list[object] | None = None,
            attention: dict[str, object] | None = None,
            attention_dir: Path | None = None, assistive: dict[str, object] | None = None,
-           assistive_dir: Path | None = None, rubric: dict[str, object] | None = None) -> str:
+           assistive_dir: Path | None = None, rubric: dict[str, object] | None = None,
+           reader_views: dict[str, object] | None = None,
+           reader_views_dir: Path | None = None,
+           scoring_profile: dict[str, object] | None = None,
+           site_basics: dict[str, object] | None = None,
+           robot_visibility: dict[str, object] | None = None) -> str:
     if payload.get("schema_version") != "1.1":
         raise ValueError("Expected S2C audit schema_version 1.1")
     reports = payload.get("reports")
@@ -574,10 +863,17 @@ def render(payload: dict[str, object], walkthrough: dict[str, object] | None = N
             raise ValueError("Each report must be an object")
     walk = walkthrough_html(walkthrough, asset_dir or Path.cwd()) if walkthrough else ""
     signals = section_signals_html(signal_samples) if signal_samples is not None else ""
-    heat = (attention_html(attention, attention_dir or Path.cwd()) + wcag_spotcheck_html(attention)
-            if attention else "")
+    heat = attention_html(attention, attention_dir or Path.cwd()) if attention else ""
+    contrast = wcag_spotcheck_html(attention) if attention else ""
     assistive_view = assistive_html(assistive, assistive_dir or Path.cwd()) if assistive else ""
+    reader_view = reader_views_html(reader_views, reader_views_dir or Path.cwd()) if reader_views else ""
     rubric_view = browser_rubric_html(rubric) if rubric else ""
+    profile_view = scoring_profile_html(scoring_profile) if scoring_profile else ""
+    basics_view = site_basics_html(site_basics) if site_basics else ""
+    robot_view = robot_visibility_html(robot_visibility) if robot_visibility else ""
+    actions = collect_actions(reports[0], rubric, site_basics, robot_visibility)
+    actions_view = priority_actions_html(actions)
+    final_actions_view = action_plan_html(actions)
     rubric_teaser = ("<aside class='rubric-teaser' aria-label='Browser checklist summary'>"
                      f"<strong>{escaped(rubric['score']['earned'])}/{escaped(rubric['score']['assessed'])}</strong>"
                      f"<span>assessed browser points confirmed · {escaped(rubric['counts']['warning'])} warning(s). "
@@ -590,10 +886,30 @@ def render(payload: dict[str, object], walkthrough: dict[str, object] | None = N
         raise ValueError("Assistive and report dates do not match")
     if rubric and rubric.get("audited_on") != dated:
         raise ValueError("Browser rubric and report dates do not match")
-    body = report_html(reports[0], walk, dated, signals, heat, assistive_view, rubric_view, rubric_teaser) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
+    if reader_views and reader_views.get("audited_on") != dated:
+        raise ValueError("Reader views and report dates do not match")
+    if site_basics and site_basics.get("audited_on") != dated:
+        raise ValueError("Site basics and report dates do not match")
+    if robot_visibility and robot_visibility.get("audited_on") != dated:
+        raise ValueError("Robot visibility and report dates do not match")
+    body = report_html(reports[0], walk, dated, signals, heat, assistive_view, rubric_view, rubric_teaser,
+                       reader_view, contrast, profile_view, basics_view, actions_view, robot_view,
+                       final_actions_view) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
+    source_name = str(reports[0].get("source", "Audited page"))
+    host = urlsplit(source_name).hostname or source_name
+    menu = [("overview", "Overview", True), ("actions", "Priority actions", bool(actions_view)),
+            ("rubric", "Browser checklist", bool(rubric)), ("scoring-profile", "Scoring profile", bool(profile_view)),
+            ("site-basics", "Page basics", bool(basics_view)), ("attention", "Attention map", bool(heat)),
+            ("robot-visibility", "Robot visibility", bool(robot_view)),
+            ("assistive", "Reading & keyboard", bool(assistive_view)), ("crawler", "Crawler", bool(reader_view)),
+            ("retrieval", "Retrieval", bool(reader_view)), ("gap", "Gaps", bool(reader_view)),
+            ("contrast", "Text contrast", bool(contrast)), ("summary", "Source structure", True),
+            ("action-plan", "Action plan", True)]
+    side_nav = "".join(f"<a href='#{anchor}'>{escaped(label)}</a>" for anchor, label, shown in menu if shown)
+    shell_css = (Path(__file__).resolve().parents[1] / "assets" / "report-shell.css").read_text(encoding="utf-8")
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{'S2C visual audit' if walkthrough else ('S2C assistive reading view' if assistive else ('S2C visual attention baseline' if attention else 'S2C source audit'))}</title>
+<title>{'S2C page audit' if rubric or walkthrough else ('S2C assistive reading view' if assistive else ('S2C visual attention baseline' if attention else 'S2C source audit'))}</title>
 <style>
 :root{{color-scheme:light;--ink:#17211b;--muted:#4b5d50;--line:#c9d6ca;--paper:#f7f7f2;--green:#0d6b4e;--soft:#e8f2e9}}
 *{{box-sizing:border-box}}body{{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,sans-serif}}
@@ -628,6 +944,7 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 .callout h4{{margin:.15rem 0 .35rem;font-size:1rem}}.callout p{{font-size:.87rem;margin:.25rem 0;color:var(--muted)}}.callout b{{color:var(--ink)}}
 .callout .suggestion{{background:#fff0d8;border-left:3px solid #a35a00;color:var(--ink);padding:.5rem .6rem;margin:.55rem 0;font-size:.9rem}}.callout.strength .suggestion{{background:#e8f2e9;border-left-color:var(--green)}}
 .browser-rubric{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}.browser-rubric>h2{{font-size:1.55rem}}.rubric-summary{{display:flex;align-items:center;gap:1.2rem;background:#f4f6f0;padding:1rem;margin:1rem 0}}.rubric-summary>strong{{white-space:nowrap;font-size:2.3rem;line-height:1}}.rubric-summary>strong span{{font-size:1.3rem;color:var(--muted)}}.rubric-summary p{{margin:0}}.rubric-rules{{list-style:none;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.8rem}}.rubric-rule{{margin:0;padding:1rem;border:1px solid var(--line);border-left:4px solid var(--green);background:#fbfcfa}}.rubric-rule.warning{{border-left-color:#a35a00;background:#fff8eb}}.rubric-rule.review,.rubric-rule.not_checked{{border-left-color:#667784}}.rubric-rule-head{{display:flex;flex-wrap:wrap;gap:.3rem .6rem;align-items:baseline}}.rubric-rule-head h3{{flex:1 1 100%;font-size:1rem;margin:.1rem 0}}.rubric-rule-head strong{{font-size:.82rem}}.rubric-status{{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em}}.rubric-rule ul{{font-size:.85rem;margin:.35rem 0}}.rubric-next{{font-size:.85rem;background:#fff;padding:.4rem .55rem;margin:.5rem 0 0}}
+.scoring-profile{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}.scoring-profile>h2{{font-size:1.55rem}}.profile-columns{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}}.profile-columns>div{{min-width:0}}.profile-columns table{{border-collapse:collapse;width:100%;font-size:.84rem}}.profile-columns th,.profile-columns td{{border-bottom:1px solid var(--line);padding:.38rem;text-align:left;vertical-align:top}}.profile-columns td{{white-space:nowrap}}@media(max-width:700px){{.profile-columns{{grid-template-columns:1fr}}}}
 .attention{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}
 .attention>h2{{font-size:1.55rem}}.attention>p{{max-width:85ch}}
 .attention-frame{{border-top:1px solid var(--line);padding:1.3rem 0}}.attention-frame h3{{font-size:1.1rem;margin:0 0 .25rem}}
@@ -649,6 +966,15 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 .assistive-columns details,.assistive-columns>div{{min-width:0;background:var(--paper);padding:.7rem}}.assistive-columns summary{{cursor:pointer;font-weight:700}}
 .assistive-columns ol,.assistive-columns ul{{max-height:20rem;overflow:auto;overflow-wrap:anywhere}}
 .assistive-columns .marker-key{{list-style:none;padding-left:0}}
+.reader-section{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}
+.reader-section>h2{{font-size:1.55rem}}.reader-section>p{{max-width:85ch}}
+.reader-frame{{border-top:1px solid var(--line);padding:1.3rem 0}}
+.reader-frame h3{{font-size:1.1rem;margin:0 0 .75rem}}.reader-frame h4{{margin:1rem 0 .3rem}}
+.reader-frame ol,.reader-frame ul{{max-width:85ch;overflow-wrap:anywhere}}
+.reader-frame li p{{color:var(--muted);font-size:.87rem;margin:.15rem 0 .5rem}}
+.reader-map{{position:relative}}.reader-map img{{display:block;width:100%;height:auto;border:1px solid var(--line)}}
+.reader-map svg{{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}}
+.map-key{{font-size:.87rem;color:var(--muted);margin:.6rem 0}}
 .wcag{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}
 .wcag>h2{{font-size:1.55rem}}.wcag>p{{max-width:85ch}}.wcag a{{color:var(--green)}}
 .wcag-frame{{border-top:1px solid var(--line);padding:1.2rem 0}}.wcag-frame h3{{margin:0 0 .3rem;font-size:1.1rem}}
@@ -668,7 +994,13 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 @media(max-width:700px){{.attention-cues{{grid-template-columns:1fr}}}}
 @media(max-width:700px){{.assistive-columns{{grid-template-columns:1fr}}}}
 @media(max-width:450px){{.summary{{display:block}}.score{{margin-bottom:.7rem}}.outline .h5,.outline .h6{{padding-left:3rem}}}}
-</style></head><body><main>{body}</main></body></html>"""
+</style><style>{shell_css}</style></head><body><div class="s2c-shell">
+<aside class="s2c-sidebar"><div class="s2c-brand"><span class="s2c-mark">S<span>2</span>C</span>
+<div><strong>SCAN TO COMPREHEND</strong><small>Triuna Labs / audit report</small></div></div>
+<p class="s2c-side-label">REPORT NAVIGATION</p><nav aria-label="Report navigation">{side_nav}</nav>
+<div class="s2c-side-foot">AUDITED {escaped(dated or 'DATE NOT RECORDED')}<br>Method and limits accompany each view.</div></aside>
+<div class="s2c-content"><div class="s2c-topbar"><span>Website audit <b>/</b> {escaped(host)}</span>
+<span>CAPTURED EVIDENCE · EDITORIAL SCORING</span></div><main>{body}</main></div></div></body></html>"""
 
 
 def main() -> int:
@@ -679,6 +1011,10 @@ def main() -> int:
     parser.add_argument("--signals", nargs="+", type=Path, help="Optional opt-in section signals session exports")
     parser.add_argument("--attention", type=Path, help="Optional S2C heuristic attention result JSON")
     parser.add_argument("--assistive", type=Path, help="Optional s2c-assistive-v1 result JSON")
+    parser.add_argument("--reader-views", type=Path, help="Optional s2c-reader-views/v1 result JSON")
+    parser.add_argument("--scoring-profile", type=Path, help="Optional s2c-scoring-profile/v1 JSON")
+    parser.add_argument("--site-basics", type=Path, help="Optional s2c-site-basics/v1 JSON")
+    parser.add_argument("--robot-visibility", type=Path, help="Optional s2c-robot-visibility/v1 JSON")
     parser.add_argument("--rubric", type=Path, help="Optional deterministic browser rubric result JSON")
     args = parser.parse_args()
     payload = json.loads(args.audit_json.read_text(encoding="utf-8"))
@@ -686,10 +1022,16 @@ def main() -> int:
     signal_samples = [json.loads(path.read_text(encoding="utf-8")) for path in args.signals] if args.signals else None
     attention = json.loads(args.attention.read_text(encoding="utf-8")) if args.attention else None
     assistive = json.loads(args.assistive.read_text(encoding="utf-8")) if args.assistive else None
+    reader_views = json.loads(args.reader_views.read_text(encoding="utf-8")) if args.reader_views else None
+    scoring_profile = s2c_scoring_profile.read(args.scoring_profile) if args.scoring_profile else None
+    site_basics = json.loads(args.site_basics.read_text(encoding="utf-8")) if args.site_basics else None
+    robot_visibility = json.loads(args.robot_visibility.read_text(encoding="utf-8")) if args.robot_visibility else None
     rubric = json.loads(args.rubric.read_text(encoding="utf-8")) if args.rubric else None
     result = render(payload, walkthrough, args.walkthrough.parent if args.walkthrough else None,
                     signal_samples, attention, args.attention.parent if args.attention else None,
-                    assistive, args.assistive.parent if args.assistive else None, rubric)
+                    assistive, args.assistive.parent if args.assistive else None, rubric,
+                    reader_views, (args.reader_views.parent / "capture") if args.reader_views else None,
+                    scoring_profile, site_basics, robot_visibility)
     result = "\n".join(line.rstrip() for line in result.splitlines()) + "\n"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(result, encoding="utf-8")

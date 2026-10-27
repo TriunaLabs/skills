@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#102038">
+  <title>Scan to Comprehend · Local audit playground</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#run-form">Skip to audit setup</a>
+  <header class="topbar">
+    <div class="brand"><span class="mark">T<span>·</span></span><span>TRIUNA LABS <em>/</em> SCAN TO COMPREHEND</span></div>
+    <span class="local-badge"><i></i> LOCAL TEST</span>
+  </header>
+  <main>
+    <div class="masthead">
+      <div><p class="eyebrow">VISUAL AUDIT PLAYGROUND <span>01 / RULES</span></p>
+        <h1>See how a page <em>reads.</em></h1>
+        <p class="lead">Enter a public webpage or a single HTML prototype. S2C captures three viewport sizes, checks source and browser rules, and builds an inspectable report with evidence and suggested actions.</p>
+      </div>
+      <div class="method-card"><span>THE METHOD</span><strong>Observe → score → inspect</strong><p>Deterministic rules and an experimental attention layer. No camera, gaze measurement, or generative review.</p></div>
+    </div>
+    <div class="workspace">
+      <section class="setup panel" aria-labelledby="setup-title">
+        <div class="panel-heading"><span class="step">01</span><div><p class="eyebrow">RUN SETUP</p><h2 id="setup-title">Audit a webpage</h2></div></div>
+        <form id="run-form">
+          <fieldset class="source-choice"><legend>Audit source</legend><label><input type="radio" name="source-kind" value="url" checked> Public URL</label><label><input type="radio" name="source-kind" value="html"> Single HTML file</label></fieldset>
+          <div id="url-source"><label for="url">Website URL</label>
+            <div class="input-wrap"><span aria-hidden="true">↗</span><input id="url" name="url" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com/" required maxlength="2048"></div>
+            <p class="field-note">Public HTML pages on ports 80 or 443. The source preflight does not follow redirects.</p></div>
+          <div id="html-source" hidden><label for="html-file">Prototype .html file</label><input id="html-file" type="file" accept=".html,.htm,text/html">
+            <p class="field-note">One self-contained file, up to 2 MB. Local test: scripts and external requests are blocked. Extracted evidence remains in this computer's audit folder until removed.</p></div>
+          <label for="question">Reader question <span class="optional">OPTIONAL</span></label>
+          <div class="input-wrap"><span aria-hidden="true">?</span><input id="question" name="question" type="text" maxlength="200" placeholder="What does this page offer?"></div>
+          <p class="field-note">Retrieval view uses local BM25 for this question. Leave it blank for a position and length baseline.</p>
+          <label for="important">Important text robots should find <span class="optional">OPTIONAL</span></label>
+          <textarea id="important" rows="3" placeholder="One phrase per line, up to five"></textarea>
+          <p class="field-note">S2C compares these phrases in initial HTML and the no-interaction rendered DOM. This is a visibility review, not proof of indexing.</p>
+          <details id="rubric-editor" class="rubric-editor"><summary>Inspect and tune scoring rules <span>↗</span></summary>
+            <p>These controls change editorial weights and passage ranking. The capture, rule findings, source-friction formula, and experimental attention model stay fixed.</p>
+            <div id="browser-weights" class="rubric-group"></div>
+            <div id="crawler-weights" class="rubric-group"></div>
+            <div id="retrieval-controls" class="rubric-group"></div>
+            <div id="gap-controls" class="rubric-group"></div>
+            <p id="profile-error" class="profile-error" role="alert" hidden></p>
+            <button id="reset-profile" class="secondary" type="button">Reset default weights</button>
+          </details>
+          <button id="run-button" class="primary" type="submit"><span>Run visual audit</span><span aria-hidden="true">↗</span></button>
+        </form>
+        <div class="samples"><p class="eyebrow">TRY A PUBLIC PAGE</p><div class="sample-buttons"><button type="button" data-url="https://jobfitiq.com/">JobFitIQ</button><button type="button" data-url="https://triunalabs.com/">Triuna Labs</button><button type="button" data-url="https://lfa.studio/">LFA Studio</button></div></div>
+        <div class="scope"><h3>What the report includes</h3><ul><li>Source strengths, warnings, and structure</li><li>Seven browser rules with earned / assessed points</li><li>Desktop, mobile, and 320 px captures</li><li>Page basics: timing, link sample, contact and policy routes</li><li>Raw HTML versus rendered robot visibility</li><li>Attention, assistive, crawler, retrieval, and gap views</li><li>Final action plan</li></ul></div>
+      </section>
+      <section class="results panel" aria-labelledby="results-title">
+        <div class="panel-heading result-heading"><span class="step">02</span><div><p class="eyebrow">OUTPUT</p><h2 id="results-title">Audit report</h2></div><span id="state-pill" class="state-pill">READY</span></div>
+        <div id="empty-state" class="empty-state"><div class="orbit" aria-hidden="true"><span></span><span></span><span></span></div><p class="eyebrow">AWAITING PAGE</p><h3>Evidence starts with a page.</h3><p>Submit a public website or one HTML file to generate a dated report. The audit appears here when the capture and checks finish.</p></div>
+        <div id="progress" class="progress" hidden role="status" aria-live="polite"><div class="progress-track"><span></span></div><p class="eyebrow">AUDIT IN PROGRESS</p><h3 id="progress-stage">Checking page source</h3><p>Browser capture can take a few minutes on complex pages. Keep this tab open.</p><code id="run-id"></code></div>
+        <div id="error" class="error" hidden role="alert"><span>RUN COULD NOT COMPLETE</span><h3>We could not audit this page.</h3><p id="error-text"></p><p>Try the final public URL if this page redirects, or choose another public HTML page.</p></div>
+        <div id="result" class="result" hidden>
+          <div class="result-summary"><div><p class="eyebrow">CAPTURED RESULT</p><h3 id="result-url"></h3><p id="result-meta"></p></div><div class="score"><strong id="result-score">—</strong><span>assessed points</span></div></div>
+          <div class="revision-bar"><div><strong id="revision-label">Original scoring</strong><p id="revision-detail">Edit the rubric or reader question, then apply it to this saved capture.</p></div><div class="revision-actions"><button id="apply-profile" type="button">Apply to saved capture</button><button id="restore-original" type="button" hidden>Show original</button></div></div>
+          <div id="revision-history" class="revision-history" hidden></div>
+          <div class="stats"><div><strong id="warnings">—</strong><span>Checklist warnings</span></div><div><strong id="reviews">—</strong><span>Checklist reviews</span></div><div><strong id="site-basics-count">—</strong><span>Page basics</span></div><div><strong id="robot-count">—</strong><span>Robot visibility</span></div><div><strong id="source-findings">—</strong><span>Source findings</span></div></div>
+          <div class="report-head"><div><strong>Full visual report</strong><span>Scroll inside to inspect views, rules, and actions</span></div><a id="open-report" href="#" target="_blank" rel="noopener">Open report ↗</a></div>
+          <nav id="view-nav" class="view-nav" aria-label="Report views" hidden>
+            <button type="button" data-view="overview">Overview</button><button type="button" data-view="actions">Actions</button><button type="button" data-view="site-basics">Page basics</button><button type="button" data-view="robot-visibility">Robots</button><button type="button" data-view="scoring-profile">Rubric</button><button type="button" data-view="attention">Attention</button><button type="button" data-view="assistive">Assistive</button><button type="button" data-view="crawler">Crawler</button><button type="button" data-view="retrieval">Retrieval</button><button type="button" data-view="gap">Gaps</button><button type="button" data-view="contrast">Contrast</button><button type="button" data-view="rubric">Rules</button><button type="button" data-view="action-plan">Action plan</button>
+          </nav>
+          <a id="views-json" class="json-link" href="#" target="_blank" rel="noopener" hidden>Inspect projection JSON ↗</a>
+          <iframe id="report-frame" title="Generated Scan to Comprehend audit report" sandbox="" loading="lazy"></iframe>
+        </div>
+      </section>
+    </div>
+    <p class="footnote">Local test: runs and reports stay on this computer. Uploaded HTML evidence is saved in the local report artifacts; external file resources are blocked. Scores are editorial triage aids, not measured cognitive load, gaze, accessibility conformance, or comprehension. The attention layer is an untrained heuristic that underperformed a position-only baseline on held-out pages. <a href="https://triunalabs.com/privacy/">Privacy</a> · <a href="https://triunalabs.com/terms/">Terms</a></p>
+  </main>
+  <footer><span>TRIUNA LABS / S2C</span><span>Inspect the evidence. Test the reader task.</span><span><a href="https://triunalabs.com/privacy/">Privacy</a> · <a href="https://triunalabs.com/terms/">Terms</a></span></footer>
+</body>
+</html>
