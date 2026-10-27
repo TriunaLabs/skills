@@ -124,6 +124,31 @@ class S2CVisualizeTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "inside result directory"):
                 VISUALIZE.render(payload(), attention=attention, attention_dir=directory)
 
+    def test_assistive_paths_are_embedded_and_escaped(self):
+        with tempfile.TemporaryDirectory(dir=SCRIPT.parents[1]) as temporary:
+            directory = Path(temporary)
+            (directory / "screen.png").write_bytes(PIXEL)
+            assistive = {"schema": "s2c-assistive-v1", "audited_on": "2026-10-26",
+                         "frames": [{"id": "desktop", "image": "screen.png", "captured_at": "2026-10-26T10:00:00Z",
+                                     "viewport": {"width": 100, "height": 100}, "document_width": 100,
+                                     "reading_path": [{"index": 1, "role": "heading", "name": "<unsafe>",
+                                                       "box": {"x": 5, "y": 5, "width": 40, "height": 20},
+                                                       "in_viewport": True}],
+                                     "focus_path": [{"index": 1, "tag": "a", "label": "Jump", "box": {"x": 5, "y": 5,
+                                                     "width": 40, "height": 20}, "in_viewport": True}],
+                                     "findings": [], "first_heading_step": 1, "first_action_step": None,
+                                     "focus_stop": "cycle"}]}
+            result = VISUALIZE.render(payload(), assistive=assistive, assistive_dir=directory)
+            self.assertIn("CHROMIUM / ASSISTIVE READING VIEW", result)
+            self.assertIn("Show AX reading path", result)
+            self.assertIn("&lt;unsafe&gt;", result)
+            self.assertNotIn("<unsafe>", result)
+            self.assertIn("data:image/png;base64,", result)
+            self.assertIn("<time datetime='2026-10-26'>October 26, 2026</time>", result)
+            assistive["frames"][0]["image"] = "../screen.png"
+            with self.assertRaisesRegex(ValueError, "inside result directory"):
+                VISUALIZE.render(payload(), assistive=assistive, assistive_dir=directory)
+
 
 if __name__ == "__main__":
     unittest.main()

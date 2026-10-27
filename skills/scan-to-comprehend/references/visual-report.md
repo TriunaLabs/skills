@@ -11,7 +11,9 @@ Use this mode when the user gives a public URL and wants to inspect a visual aud
 
 If the page owner has opted into the [section interaction probe](interaction-signals.md), pass its local session exports with `--signals session-a.json session-b.json`. The report adds a separately labeled observed-behavior table and viewport-reach bars. No session data are inferred from the screenshots or source audit.
 
-If a visual attention estimate is requested, follow the [experimental attention baseline](attention-baseline.md), then pass `--attention attention.json` to the same renderer. Its heatmap and cue ranks are a separate, unvalidated heuristic layer; they do not change reviewer callouts or the source index.
+If a visual attention estimate is requested, follow the [experimental attention baseline](attention-baseline.md), then pass `--attention attention.json` to the same renderer. Its heatmap and cue ranks are a separate heuristic layer; the held-out UEyes result did not establish an advantage over a simple position map. They do not change reviewer callouts or the source index.
+
+For the browser-reported accessibility-tree and keyboard paths, follow the [assistive reading view](assistive-view.md) and pass `--assistive assistive.json` to the same renderer. Keep its review candidates separate from WCAG conformance findings and reader-task results.
 
 ## Walkthrough manifest
 

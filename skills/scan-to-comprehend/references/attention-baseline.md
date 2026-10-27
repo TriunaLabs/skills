@@ -21,11 +21,17 @@ For an evidence-linked interpretation of component competition on a page, use th
 
 The same supplied text and background colors support a **separate** [WCAG 2.2 SC 1.4.3 text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) spot check. It compares unrounded ratios to 4.5:1 for normal text or 3:1 for text at least 24 CSS px or about 18.67 CSS px at weight 700+. Missing font size or effective colors become `needs_review`; logos and non-text graphics are excluded. The report labels ratios from manually sampled colors as approximations. Neither a per-element result nor a screenshot constitutes a full WCAG pass/fail judgment. Verify effective CSS, overlays, states, device sizes, [non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html), and keyboard focus separately.
 
-Contrast is already one **continuous heuristic feature** in the heatmap. WCAG's 3:1 and 4.5:1 thresholds are accessibility decision points, not measured gaze breakpoints, so the WCAG result does not become a binary attention multiplier. A below-threshold label flags a readability question; it does not prove low fixation probability. When real held-out fixations arrive, compare the full map against an otherwise identical **no-contrast ablation** using `equal_trial_mean_bits_vs_no_contrast`. A positive result on diverse unseen pages and tasks would support keeping the feature; a negative result would argue for revising or removing it. Document capture color quality and bootstrap uncertainty before claiming predictive value.
+Contrast is already one **continuous heuristic feature** in the heatmap. WCAG's 3:1 and 4.5:1 thresholds are accessibility decision points, not measured gaze breakpoints, so the WCAG result does not become a binary attention multiplier. A below-threshold label flags a readability question; it does not prove low fixation probability. The held-out UEyes test below found only a 0.005 NSS difference between the full map and a version without its pixel-contrast proxy at 3 seconds on webpages. That does not establish a predictive benefit from contrast. Document capture color quality and bootstrap uncertainty before claiming predictive value.
+
+## Observed held-out result, October 26, 2026
+
+The separate `gaze-element-map` research repo evaluated the unchanged `s2c-heuristic-attention-v1` map on UEyes's supplied Train/Test screen split. On 27 held-out Test webpages at the cumulative 3-second window, the map reached **0.506 NSS**; a Train-fitted center Gaussian reached **0.309**, and a Train-fitted position-only map reached **1.148**. The paired S2C minus center difference was +0.197 NSS (95% screen-bootstrap interval −0.014 to +0.399). S2C minus position-only was −0.642 (−0.910 to −0.353). The S2C map therefore did not establish an NSS advantage over center and was worse than the simple position-only baseline. The no-contrast version reached 0.501 NSS.
+
+This was a same-corpus screenshot test using OCR and detected UI boxes as proxies for DOM elements; pixel contrast and OCR cap height stood in for CSS properties. It does not validate the JobFitIQ heatmap or transfer to a live URL audit. Do not label the map “predictive eye tracking” or claim individual gaze, task success, or comprehension. Keep the result with its comparison baselines and 27-screen scope whenever describing validation.
 
 ## Held-out fixation test
 
-When a licensed, consented gaze dataset becomes available, map every fixation to screenshot pixel coordinates and make a separate `s2c-attention-fixations/v1` file:
+For another licensed, consented gaze dataset, map every fixation to screenshot pixel coordinates and make a separate `s2c-attention-fixations/v1` file:
 
 ```json
 {

@@ -64,7 +64,7 @@ def heading_map(headings: list[object]) -> str:
 
 
 def report_html(report: dict[str, object], walkthrough: str = "", audited_on: object = None,
-                signals: str = "", attention: str = "") -> str:
+                signals: str = "", attention: str = "", assistive: str = "") -> str:
     estimate = report.get("estimated_cognitive_load", {})
     if not isinstance(estimate, dict):
         estimate = {}
@@ -96,6 +96,7 @@ def report_html(report: dict[str, object], walkthrough: str = "", audited_on: ob
         <p class="subtitle">A source check followed by questions for rendered and reader review.</p>
       </header>
       {attention}
+      {assistive}
       <section class="summary" aria-label="Structural friction estimate">
         <div class="score"><strong>{escaped(score)}</strong><span>/ 100</span></div>
         <div class="score-context">
@@ -190,10 +191,85 @@ def attention_html(result: dict[str, object], asset_dir: Path) -> str:
         "<h2>Heuristic attention baseline</h2>"
         "<p>Fixed editorial rules combine position, element area, text size, supplied color contrast, "
         "and element type. Gaussian spots are blended into a relative heatmap. Face cues require explicit annotation. "
-        "This model has not been fitted to gaze data or validated on held-out fixations. "
+        "The rules were not fitted to gaze data. A held-out UEyes webpage test found 0.506 NSS at 3 seconds "
+        "versus 1.148 for a Train-fitted position map; this version does not beat that simple baseline. "
         "It does not measure gaze, dwell, comprehension, or cognitive load.</p>"
         + "".join(rows) + "</section>"
     )
+
+
+def assistive_html(result: dict[str, object], asset_dir: Path) -> str:
+    if result.get("schema") != "s2c-assistive-v1":
+        raise ValueError("Expected s2c-assistive-v1")
+    frames = result.get("frames")
+    if not isinstance(frames, list) or not frames:
+        raise ValueError("Assistive result needs frames")
+
+    def path_svg(steps: list[dict], viewport: dict, color: str, css_class: str) -> str:
+        width, height = int(viewport["width"]), int(viewport["height"])
+        points = []
+        circles = []
+        for step in steps:
+            box = step.get("box")
+            if not step.get("in_viewport") or not isinstance(box, dict):
+                continue
+            x = max(0, min(width, float(box["x"]) + float(box["width"]) / 2))
+            y = max(0, min(height, float(box["y"]) + float(box["height"]) / 2))
+            points.append(f"{x:.1f},{y:.1f}")
+            number = escaped(step["index"])
+            opacity = ".48" if len(points) > 10 else "1"
+            circles.append(f"<g opacity='{opacity}'><circle cx='{x:.1f}' cy='{y:.1f}' r='12' fill='{color}' stroke='white' stroke-width='2'/>"
+                           f"<text x='{x:.1f}' y='{y + 4:.1f}' text-anchor='middle' fill='white' font-size='11' font-weight='700'>{number}</text></g>")
+            if len(points) == 20:
+                break
+        line = f"<polyline points='{' '.join(points[:10])}' fill='none' stroke='{color}' stroke-width='3' stroke-opacity='.85'/>" if len(points) > 1 else ""
+        if len(points) > 10:
+            line += f"<polyline points='{' '.join(points[9:])}' fill='none' stroke='{color}' stroke-width='2' stroke-opacity='.35'/>"
+        return f"<svg class='{css_class}' viewBox='0 0 {width} {height}' aria-hidden='true'>{line}{''.join(circles)}</svg>"
+
+    blocks = []
+    for frame in frames:
+        image_name = frame.get("image")
+        if not isinstance(image_name, str) or not image_name:
+            raise ValueError("Assistive frame needs image")
+        image_path = (asset_dir / image_name).resolve()
+        if not image_path.is_relative_to(asset_dir.resolve()):
+            raise ValueError("Assistive image path must stay inside result directory")
+        viewport = frame["viewport"]
+        reading = frame.get("reading_path", [])
+        focus = frame.get("focus_path", [])
+        if not isinstance(reading, list) or not isinstance(focus, list):
+            raise ValueError("Assistive paths must be arrays")
+        first_heading = frame.get("first_heading_step")
+        heading_note = f"First heading: reading step {first_heading}." if first_heading else "No heading in the captured AX path."
+        action = frame.get("first_action_step")
+        action_note = f"First named action: reading step {action}." if action else "No named action in the captured AX path."
+        reading_rows = "".join(f"<li><b>{escaped(step['index'])}. {escaped(step['role'])}</b> — {escaped(step['name'])}</li>" for step in reading[:30])
+        focus_rows = "".join(f"<li><b>{escaped(step['index'])}. {escaped(step['tag'])}</b> — {escaped(step.get('label') or '(no captured label)')}</li>" for step in focus[:30])
+        findings = frame.get("findings", [])
+        finding_rows = item_list(findings[:20], "No automatic review candidate in this capture.")
+        blocks.append(
+            f"<section class='assistive-frame'><h3>{escaped(frame['id'])} · {escaped(viewport['width'])} × {escaped(viewport['height'])} CSS px</h3>"
+            f"<p class='attention-provenance'>Captured {escaped(frame['captured_at'])} (UTC). {escaped(heading_note)} {escaped(action_note)} "
+            f"Keyboard steps recorded: {len(focus)}; traversal stopped at {escaped(frame.get('focus_stop', 'unknown'))}. "
+            f"Document width {escaped(frame['document_width'])} px.</p>"
+            f"<input type='checkbox' class='assistive-toggle reading-toggle' id='reading-{escaped(frame['id'])}' checked>"
+            f"<label for='reading-{escaped(frame['id'])}'>Show AX reading path</label> "
+            f"<input type='checkbox' class='assistive-toggle focus-toggle' id='focus-{escaped(frame['id'])}'>"
+            f"<label for='focus-{escaped(frame['id'])}'>Show Tab path</label>"
+            f"<div class='assistive-view' style='max-width:min(100%,{int(viewport['width'])}px)'><img src='{screenshot_uri(image_path)}' alt='Audited {escaped(frame['id'])} screenshot'>"
+            f"{path_svg(reading, viewport, '#0d6b4e', 'reading-path')}"
+            f"{path_svg(focus, viewport, '#9b4d06', 'focus-path')}</div>"
+            f"<div class='assistive-columns'><details><summary>Reading order · first 30 of {len(reading)}</summary><ol>{reading_rows}</ol></details>"
+            f"<details><summary>Keyboard order · first 30 of {len(focus)}</summary><ol>{focus_rows}</ol></details>"
+            f"<div><h4>Review candidates · {len(findings)}</h4>{finding_rows}</div></div></section>"
+        )
+    return ("<section class='assistive' aria-label='Assistive reading view'>"
+            "<p class='eyebrow'>CHROMIUM / ASSISTIVE READING VIEW</p><h2>Reading and keyboard paths</h2>"
+            f"<p>{escaped(result.get('basis', 'Chromium capture'))}. {escaped(result.get('limit', ''))} "
+            "Numbers on the screenshot mark the first 20 mapped elements in the first viewport; steps after 10 are faint. The lists include offscreen steps. "
+            "Lines connect mapped steps in order and may skip unboxed text; they show neither eye movement nor speech timing.</p>"
+            + "".join(blocks) + "</section>")
 
 
 def wcag_spotcheck_html(result: dict[str, object]) -> str:
@@ -409,7 +485,8 @@ def section_signals_html(samples: list[object]) -> str:
 def render(payload: dict[str, object], walkthrough: dict[str, object] | None = None,
            asset_dir: Path | None = None, signal_samples: list[object] | None = None,
            attention: dict[str, object] | None = None,
-           attention_dir: Path | None = None) -> str:
+           attention_dir: Path | None = None, assistive: dict[str, object] | None = None,
+           assistive_dir: Path | None = None) -> str:
     if payload.get("schema_version") != "1.1":
         raise ValueError("Expected S2C audit schema_version 1.1")
     reports = payload.get("reports")
@@ -422,13 +499,16 @@ def render(payload: dict[str, object], walkthrough: dict[str, object] | None = N
     signals = section_signals_html(signal_samples) if signal_samples is not None else ""
     heat = (attention_html(attention, attention_dir or Path.cwd()) + wcag_spotcheck_html(attention)
             if attention else "")
-    dated = walkthrough.get("audited_on") if walkthrough else payload.get("audited_on")
-    if walkthrough and payload.get("audited_on") and payload["audited_on"] != dated:
-        raise ValueError("Audit JSON and walkthrough dates do not match")
-    body = report_html(reports[0], walk, dated, signals, heat) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
+    assistive_view = assistive_html(assistive, assistive_dir or Path.cwd()) if assistive else ""
+    dated = walkthrough.get("audited_on") if walkthrough else (assistive.get("audited_on") if assistive else payload.get("audited_on"))
+    if payload.get("audited_on") and payload["audited_on"] != dated:
+        raise ValueError("Audit JSON and report dates do not match")
+    if assistive and assistive.get("audited_on") != dated:
+        raise ValueError("Assistive and report dates do not match")
+    body = report_html(reports[0], walk, dated, signals, heat, assistive_view) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{'S2C visual attention baseline' if attention else 'S2C source audit'}</title>
+<title>{'S2C assistive reading view' if assistive else ('S2C visual attention baseline' if attention else 'S2C source audit')}</title>
 <style>
 :root{{color-scheme:light;--ink:#17211b;--muted:#4b5d50;--line:#c9d6ca;--paper:#f7f7f2;--green:#0d6b4e;--soft:#e8f2e9}}
 *{{box-sizing:border-box}}body{{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,sans-serif}}
@@ -467,6 +547,16 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 .legend-gradient{{display:inline-block;width:7rem;height:.7rem;vertical-align:middle;background:linear-gradient(90deg,#165ccd,#00c1da,#ffe137,#e42723)}}
 .attention-cues{{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.15rem 1rem;padding-left:1.4rem;max-width:850px}}
 .attention-cues li span{{display:block;font-size:.83rem;color:var(--muted)}}
+.assistive{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}
+.assistive>h2{{font-size:1.55rem}}.assistive>p{{max-width:85ch}}.assistive-frame{{border-top:1px solid var(--line);padding:1.3rem 0}}
+.assistive-frame h3{{font-size:1.1rem}}.assistive-toggle{{accent-color:var(--green);margin:.2rem .3rem .8rem .8rem}}
+.assistive-toggle:first-of-type{{margin-left:0}}.assistive-toggle+label{{cursor:pointer;font-weight:700}}
+.assistive-view{{position:relative;max-width:850px}}.assistive-view img{{display:block;width:100%;height:auto;border:1px solid var(--line)}}
+.assistive-view svg{{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}}
+.reading-toggle:not(:checked)~.assistive-view .reading-path,.focus-toggle:not(:checked)~.assistive-view .focus-path{{display:none}}
+.assistive-columns{{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-top:1rem;font-size:.87rem}}
+.assistive-columns details,.assistive-columns>div{{min-width:0;background:var(--paper);padding:.7rem}}.assistive-columns summary{{cursor:pointer;font-weight:700}}
+.assistive-columns ol,.assistive-columns ul{{max-height:20rem;overflow:auto;overflow-wrap:anywhere}}
 .wcag{{margin:2.5rem 0;padding:1.4rem;background:#fff;border:1px solid var(--line)}}
 .wcag>h2{{font-size:1.55rem}}.wcag>p{{max-width:85ch}}.wcag a{{color:var(--green)}}
 .wcag-frame{{border-top:1px solid var(--line);padding:1.2rem 0}}.wcag-frame h3{{margin:0 0 .3rem;font-size:1.1rem}}
@@ -482,6 +572,7 @@ h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1re
 @media(max-width:850px){{.walk-row{{grid-template-columns:1fr}}.margin{{grid-template-columns:1fr 1fr}}}}
 @media(max-width:540px){{.margin{{grid-template-columns:1fr}}}}
 @media(max-width:700px){{.attention-cues{{grid-template-columns:1fr}}}}
+@media(max-width:700px){{.assistive-columns{{grid-template-columns:1fr}}}}
 @media(max-width:450px){{.summary{{display:block}}.score{{margin-bottom:.7rem}}.outline .h5,.outline .h6{{padding-left:3rem}}}}
 </style></head><body><main>{body}</main></body></html>"""
 
@@ -493,13 +584,16 @@ def main() -> int:
     parser.add_argument("--walkthrough", type=Path, help="Optional rendered-page capture and callout JSON")
     parser.add_argument("--signals", nargs="+", type=Path, help="Optional opt-in section signals session exports")
     parser.add_argument("--attention", type=Path, help="Optional S2C heuristic attention result JSON")
+    parser.add_argument("--assistive", type=Path, help="Optional s2c-assistive-v1 result JSON")
     args = parser.parse_args()
     payload = json.loads(args.audit_json.read_text(encoding="utf-8"))
     walkthrough = json.loads(args.walkthrough.read_text(encoding="utf-8")) if args.walkthrough else None
     signal_samples = [json.loads(path.read_text(encoding="utf-8")) for path in args.signals] if args.signals else None
     attention = json.loads(args.attention.read_text(encoding="utf-8")) if args.attention else None
+    assistive = json.loads(args.assistive.read_text(encoding="utf-8")) if args.assistive else None
     result = render(payload, walkthrough, args.walkthrough.parent if args.walkthrough else None,
-                    signal_samples, attention, args.attention.parent if args.attention else None)
+                    signal_samples, attention, args.attention.parent if args.attention else None,
+                    assistive, args.assistive.parent if args.assistive else None)
     result = "\n".join(line.rstrip() for line in result.splitlines()) + "\n"
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(result, encoding="utf-8")

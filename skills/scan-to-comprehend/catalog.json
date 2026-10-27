@@ -1,14 +1,14 @@
 {
   "title": "Scan to Comprehend",
-  "summary": "Apply task-aware scanning patterns, audit source structure, inspect page signals, and explore a heuristic attention heatmap with a separate WCAG text contrast spot check.",
-  "badges": ["Ready", "Visual walkthrough", "Attention baseline", "Contrast screening"],
+  "summary": "Audit dense pages with source checks, browser reading and Tab paths, a visual walkthrough, and an experimental attention heatmap.",
+  "badges": ["Ready", "Visual walkthrough", "Assistive view", "Attention baseline"],
   "category": "Web & Content",
   "tags": ["content-design", "information-design", "scannability", "articles", "infographics", "websites", "comprehension"],
-  "version": "0.8.0",
+  "version": "0.9.0",
   "license": "MIT",
   "author": "TriunaLabs",
   "origin": "Original TriunaLabs workflow developed from a user-supplied Scan-to-Comprehend concept and Triuna Labs blueprint, checked against primary NN/g eye-tracking, visual-attention, and W3C sources. No third-party code or datasets are included.",
-  "requirements": ["Python 3.10+ for optional source audit and HTML report; Pillow for the attention baseline. URL mode requires network access. The optional section probe requires a browser with Pointer Events and explicit host activation. Rendered and reader validation requires suitable tools and participants."],
+  "requirements": ["Python 3.10+ for optional source audit and HTML report; Pillow for the attention baseline. The optional assistive capture needs Node, Playwright, and Chrome or bundled Chromium; public URL capture needs network access. The optional section probe requires a browser with Pointer Events and explicit host activation. Rendered and reader validation requires suitable tools and participants."],
   "compatibility": {"codex": "format-compatible", "claude-code": "format-compatible", "other-agents": "untested"},
   "examples": [
     "Restructure this technical article so a reader can find the conclusion quickly and still inspect the methods.",
