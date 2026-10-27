@@ -100,7 +100,7 @@ def run(args: argparse.Namespace) -> dict:
         raise ValueError("Choose --scoring-profile or --rubric-config, not both")
     profile = (s2c_scoring_profile.validate(scoring_profile_data) if scoring_profile_data is not None
                else s2c_scoring_profile.read(scoring_profile_path))
-    robots_preflight = public_robots_preflight(args.url) if args.url and not args.snapshot else None
+    robots_preflight = None
     output.mkdir(parents=True, exist_ok=True)
     write_json(output / "scoring-profile.json", profile)
     telemetry = Telemetry.create(args.otel, args.otlp_endpoint)
@@ -114,6 +114,10 @@ def run(args: argparse.Namespace) -> dict:
             "s2c.input.kind": "replay" if args.snapshot else ("html" if html_source is not None else "url"),
         }) as root:
             trace_id = Telemetry.trace_id(root)
+            with telemetry.span("s2c.robots_preflight") as span:
+                if args.url and not args.snapshot:
+                    robots_preflight = public_robots_preflight(args.url)
+                    span.set_attribute("s2c.robots.status", robots_preflight["status"])
             raw_html = (raw_html_file.read_text(encoding="utf-8") if raw_html_file else html_source)
             x_robots_tag = ""
             with telemetry.span("s2c.source_audit", {
@@ -155,6 +159,11 @@ def run(args: argparse.Namespace) -> dict:
                     snapshot = json.loads((capture_dir / "snapshot.json").read_text(encoding="utf-8"))
                 span.set_attribute("s2c.capture.frame_count", len(snapshot["frames"]))
                 span.set_attribute("s2c.capture.bytes", (capture_dir / "snapshot.json").stat().st_size)
+                guards = [frame["network_guard"] for frame in snapshot["frames"]
+                          if isinstance(frame.get("network_guard"), dict)]
+                span.set_attribute("s2c.network.request_count", sum(item.get("requests", 0) for item in guards))
+                span.set_attribute("s2c.network.blocked_count", sum(
+                    sum((item.get("blocked") or {}).values()) for item in guards))
 
             with telemetry.span("s2c.projection.site_basics") as span:
                 desktop = next((frame for frame in snapshot["frames"] if frame.get("id") == "desktop"), snapshot["frames"][0])

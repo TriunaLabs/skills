@@ -16,6 +16,9 @@ processors:
       - s2c.stage.mode
       - s2c.capture.frame_count
       - s2c.capture.bytes
+      - s2c.robots.status
+      - s2c.network.request_count
+      - s2c.network.blocked_count
       - s2c.source.finding_count
       - s2c.rule.pass_count
       - s2c.rule.warning_count

@@ -31,18 +31,25 @@ class S2COtelTests(unittest.TestCase):
         telemetry = Telemetry(tracer=provider.get_tracer("triunalabs.s2c"), provider=provider)
         with telemetry.span("s2c.run", {"s2c.run.id": "safe-run-id"}) as root:
             trace_id = Telemetry.trace_id(root)
+            with telemetry.span("s2c.robots_preflight") as preflight:
+                preflight.set_attribute("s2c.robots.status", "retrieved")
             with self.assertRaisesRegex(ValueError, "private page"):
-                with telemetry.span("s2c.capture"):
+                with telemetry.span("s2c.capture") as capture:
+                    capture.set_attribute("s2c.network.request_count", 8)
+                    capture.set_attribute("s2c.network.blocked_count", 2)
                     raise ValueError("private page https://example.org/private?token=secret")
             with self.assertRaisesRegex(ValueError, "not allowed"):
                 root.set_attribute("url.full", "https://example.org/private?token=secret")
         self.assertTrue(telemetry.finish())
         self.assertRegex(trace_id, r"^[0-9a-f]{32}$")
         spans = {span.name: span for span in exporter.get_finished_spans()}
-        self.assertEqual(set(spans), {"s2c.run", "s2c.capture"})
+        self.assertEqual(set(spans), {"s2c.run", "s2c.robots_preflight", "s2c.capture"})
         self.assertEqual(spans["s2c.capture"].parent.span_id, spans["s2c.run"].context.span_id)
         self.assertEqual(spans["s2c.capture"].context.trace_id, spans["s2c.run"].context.trace_id)
-        self.assertEqual(dict(spans["s2c.capture"].attributes), {"s2c.error.type": "ValueError"})
+        self.assertEqual(dict(spans["s2c.capture"].attributes),
+                         {"s2c.network.request_count": 8, "s2c.network.blocked_count": 2,
+                          "s2c.error.type": "ValueError"})
+        self.assertEqual(dict(spans["s2c.robots_preflight"].attributes), {"s2c.robots.status": "retrieved"})
         self.assertNotIn("example.org", repr(spans))
         self.assertNotIn("token=secret", repr(spans))
         self.assertNotIn("private page", repr(spans))

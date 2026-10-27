@@ -35,7 +35,7 @@ For a skill-folder-only installation, install `observability/requirements.txt` f
 
 ## Trace contract
 
-The root span is `s2c.run`. Stage spans are `s2c.source_audit`, `s2c.capture`, `s2c.projection.assistive`, optional `s2c.projection.attention_experiment`, `s2c.rules.browser`, and `s2c.report.render`. The capture span covers the child browser process as a timed operation; the JavaScript process is not independently instrumented yet. A reused snapshot is marked with `s2c.stage.mode=reuse`.
+The root span is `s2c.run`. Stage spans include `s2c.robots_preflight` for live URLs, `s2c.source_audit`, `s2c.capture`, `s2c.projection.assistive`, optional `s2c.projection.attention_experiment`, `s2c.rules.browser`, and `s2c.report.render`. The capture span covers the child browser process as a timed operation and records only request and block counts from the guarded public URL render; the JavaScript process is not independently instrumented yet. A reused snapshot is marked with `s2c.stage.mode=reuse`.
 
 Attributes are allowlisted in `s2c_telemetry.py` and again in the sample Collector. They contain run ID, input/mode, method version, counts, and artifact size. Raw URL, page text, screenshot, prompt, path, account identity, and exception message are excluded. Errors record only the exception class and error status; the Python SDK's automatic exception recording is disabled. A requested OTLP endpoint must be explicit through `--otlp-endpoint` or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`; ordinary skill use sends no telemetry.
 

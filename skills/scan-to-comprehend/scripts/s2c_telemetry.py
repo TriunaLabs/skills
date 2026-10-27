@@ -12,6 +12,7 @@ from typing import Iterator
 ALLOWED_ATTRIBUTES = frozenset({
     "s2c.run.id", "s2c.input.kind", "s2c.mode", "s2c.stage.mode",
     "s2c.capture.frame_count", "s2c.capture.bytes",
+    "s2c.robots.status", "s2c.network.request_count", "s2c.network.blocked_count",
     "s2c.source.finding_count", "s2c.rule.pass_count",
     "s2c.rule.warning_count", "s2c.rule.review_count",
     "s2c.rule.not_checked_count", "s2c.rubric.version",
