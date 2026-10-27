@@ -10,6 +10,16 @@ python skills/scan-to-comprehend/scripts/s2c_assistive.py capture-dir/snapshot.j
 python skills/scan-to-comprehend/scripts/s2c_visualize.py audit.json --assistive capture-dir/assistive.json --output report.html
 ```
 
+The same snapshot can feed the experimental attention layer and its separate contrast screen:
+
+```bash
+python skills/scan-to-comprehend/scripts/s2c_browser_to_attention.py capture-dir/snapshot.json --output capture-dir/attention-capture.json
+python skills/scan-to-comprehend/scripts/s2c_attention.py render capture-dir/attention-capture.json --output capture-dir/attention.json
+python skills/scan-to-comprehend/scripts/s2c_visualize.py audit.json --assistive capture-dir/assistive.json --attention capture-dir/attention.json --output report.html
+```
+
+This mapping keeps first-viewport semantic element boxes, clips them to the screenshot, and omits color ratios for text overlapping a captured image. Other overlays and CSS effects can still escape the check. Inspect the aligned screenshot and spot-check colors before using the layer in a review. The heatmap is a fixed heuristic that trailed a simple position-only baseline in its held-out UEyes test; it is not a measured gaze map.
+
 `--audit-date` is the date of inspection in the reviewer's timezone; if omitted, it defaults to the UTC date. Each frame retains an ISO UTC timestamp. The browser capture returns `s2c-browser-capture/v1` with the DOM nodes, computed styles, first-viewport image, Chromium AX path, observed focus order, and document width. The pure projection returns `s2c-assistive-v1`. Save the snapshot as the reusable source; rerun the projection when rules change, without pretending to have recaptured the site.
 
 The report displays the first 20 mapped reading and focus markers on each first-viewport screenshot. The first 10 are solid and later markers faint. Full order lists include offscreen steps. Accessibility-tree text nodes sometimes have no painted element box; those remain in the list and do not receive invented coordinates. Focus may move the browser scroll position during capture, so the overlay uses each node's original screenshot coordinates.

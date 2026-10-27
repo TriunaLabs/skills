@@ -87,17 +87,25 @@ def report_html(report: dict[str, object], walkthrough: str = "", audited_on: ob
     else:
         iso_date, readable_date = audit_date(audited_on)
         date_line = f"<p class='audit-date'><b>Audit date:</b> <time datetime='{iso_date}'>{readable_date}</time></p>"
+    links = []
+    if walkthrough:
+        links.append("<a href='#walkthrough'>Reviewer walkthrough</a>")
+    if attention:
+        links.append("<a href='#attention'>Attention and contrast</a>")
+    if assistive:
+        links.append("<a href='#assistive'>Reading and Tab paths</a>")
+    nav = f"<nav class='report-nav' aria-label='Report sections'>{' · '.join(links)}</nav>" if links else ""
     return f"""
     <article class="report" aria-label="Audit for {escaped(report.get('source', 'unknown source'))}">
       <header>
-        <p class="eyebrow">SCAN TO COMPREHEND / SOURCE PREFLIGHT</p>
+        <p class="eyebrow">SCAN TO COMPREHEND / {'VISUAL AUDIT' if walkthrough else 'SOURCE PREFLIGHT'}</p>
         <h1>{escaped(report.get('source', 'Unknown source'))}</h1>
         {date_line}
-        <p class="subtitle">A source check followed by questions for rendered and reader review.</p>
+        <p class="subtitle">{'A rendered-page walkthrough followed by source and browser checks.' if walkthrough else 'A source check followed by questions for rendered and reader review.'}</p>
+        {nav}
       </header>
-      {attention}
-      {assistive}
-      <section class="summary" aria-label="Structural friction estimate">
+      {walkthrough}
+      <section class="summary" id="summary" aria-label="Structural friction estimate">
         <div class="score"><strong>{escaped(score)}</strong><span>/ 100</span></div>
         <div class="score-context">
           <h2>Structural friction risk index</h2>
@@ -113,7 +121,8 @@ def report_html(report: dict[str, object], walkthrough: str = "", audited_on: ob
         <section><span class="step">02 / LOCATE</span><h2>Where is the answer?</h2><p>Use this source heading map as one entry point; inspect the rendered page too.</p></section>
         <section><span class="step">03 / UNDERSTAND</span><h2>What does it mean?</h2><p>Ask a reader to explain the answer and its caveats. This audit cannot measure that.</p></section>
       </div>
-      {walkthrough}
+      {attention}
+      {assistive}
       {signals}
       <div class="columns">
         <section><h2>Source heading map</h2>{heading_map(headings)}</section>
@@ -186,7 +195,7 @@ def attention_html(result: dict[str, object], asset_dir: Path) -> str:
             f"<h4>Highest rule weights</h4><ol class='attention-cues'>{''.join(cue_rows)}</ol></section>"
         )
     return (
-        "<section class='attention' aria-label='Estimated visual attention'>"
+        "<section class='attention' id='attention' aria-label='Estimated visual attention'>"
         "<p class='eyebrow'>EXPERIMENTAL / ESTIMATED VISUAL ATTENTION</p>"
         "<h2>Heuristic attention baseline</h2>"
         "<p>Fixed editorial rules combine position, element area, text size, supplied color contrast, "
@@ -264,7 +273,7 @@ def assistive_html(result: dict[str, object], asset_dir: Path) -> str:
             f"<details><summary>Keyboard order · first 30 of {len(focus)}</summary><ol>{focus_rows}</ol></details>"
             f"<div><h4>Review candidates · {len(findings)}</h4>{finding_rows}</div></div></section>"
         )
-    return ("<section class='assistive' aria-label='Assistive reading view'>"
+    return ("<section class='assistive' id='assistive' aria-label='Assistive reading view'>"
             "<p class='eyebrow'>CHROMIUM / ASSISTIVE READING VIEW</p><h2>Reading and keyboard paths</h2>"
             f"<p>{escaped(result.get('basis', 'Chromium capture'))}. {escaped(result.get('limit', ''))} "
             "Numbers on the screenshot mark the first 20 mapped elements in the first viewport; steps after 10 are faint. The lists include offscreen steps. "
@@ -313,13 +322,13 @@ def wcag_spotcheck_html(result: dict[str, object]) -> str:
     if not sections:
         return ""
     return (
-        "<section class='wcag' aria-label='WCAG text contrast spot check'>"
+        "<section class='wcag' id='contrast' aria-label='WCAG text contrast spot check'>"
         "<p class='eyebrow'>ACCESSIBILITY / TEXT CONTRAST SPOT CHECK</p>"
         "<h2>Can the highlighted text be read?</h2>"
         "<p>This screens annotated text against <a href='https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html'>"
         "WCAG 2.2 SC 1.4.3</a>: 4.5:1 for normal text and 3:1 for large text. "
         "It is separate from the estimated heatmap and structural friction score. A low-contrast element can "
-        "receive less estimated attention under the current heuristic, but that gaze effect has not been validated.</p>"
+        "receive less estimated attention under the current heuristic; a held-out test did not establish a benefit from its pixel-contrast proxy.</p>"
         + "".join(sections)
         + "<p class='boundary'>These are screening results for visible annotated elements, not WCAG conformance. "
         "Confirm exact CSS colors, backgrounds, font size and weight, all responsive and interaction states. "
@@ -384,7 +393,7 @@ def walkthrough_html(walkthrough: dict[str, object], asset_dir: Path) -> str:
             + "".join(pins) + "</div><ol class='margin'>" + "".join(rail) + "</ol></div></section>"
         )
     return (
-        "<section class='walkthrough' aria-label='Rendered page walkthrough'>"
+        "<section class='walkthrough' id='walkthrough' aria-label='Rendered page walkthrough'>"
         f"<div class='walk-head'><p class='eyebrow'>RENDERED PAGE WALKTHROUGH</p><h2>{task}</h2>"
         f"<p><a href='{escaped(url)}'>{escaped(url)}</a> · {basis} · Callouts are review observations, not measured gaze.</p></div>"
         + "".join(rows) + "</section>"
@@ -508,7 +517,7 @@ def render(payload: dict[str, object], walkthrough: dict[str, object] | None = N
     body = report_html(reports[0], walk, dated, signals, heat, assistive_view) + "\n" + "\n".join(report_html(report, audited_on=dated) for report in reports[1:])
     return f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{'S2C assistive reading view' if assistive else ('S2C visual attention baseline' if attention else 'S2C source audit')}</title>
+<title>{'S2C visual audit' if walkthrough else ('S2C assistive reading view' if assistive else ('S2C visual attention baseline' if attention else 'S2C source audit'))}</title>
 <style>
 :root{{color-scheme:light;--ink:#17211b;--muted:#4b5d50;--line:#c9d6ca;--paper:#f7f7f2;--green:#0d6b4e;--soft:#e8f2e9}}
 *{{box-sizing:border-box}}body{{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 system-ui,sans-serif}}
@@ -517,6 +526,7 @@ main{{max-width:1100px;margin:auto;padding:clamp(1rem,3vw,2.5rem)}}.report{{marg
 h1{{font-size:clamp(1.8rem,4vw,3rem);overflow-wrap:anywhere;line-height:1.15;margin:.35rem 0}}
 h2{{font-size:1.15rem;line-height:1.25;margin:0 0 .65rem}}p{{margin:.25rem 0 1rem}}.subtitle{{color:var(--muted)}}
 .audit-date{{display:inline-block;background:var(--soft);border-left:3px solid var(--green);padding:.45rem .7rem;margin:.45rem 0 .7rem;font-size:.93rem}}
+.report-nav{{display:flex;flex-wrap:wrap;gap:.4rem 1rem;margin:.6rem 0 1rem;font-size:.93rem}}.report-nav a{{color:var(--green);font-weight:700}}
 .summary{{display:flex;gap:1.5rem;align-items:center;background:#fff;border:1px solid var(--line);padding:1.3rem;margin:1.7rem 0 .7rem}}
 .score{{display:flex;align-items:baseline;white-space:nowrap}}.score strong{{font-size:3.5rem;line-height:1}}.score span{{color:var(--muted)}}
 .score-context{{flex:1;min-width:0}}.score-context p{{margin:.45rem 0 0;color:var(--muted);font-size:.9rem}}

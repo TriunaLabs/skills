@@ -2,6 +2,8 @@
 
 Use this mode only when a user asks for a **visual attention estimate** on a rendered page. It is an untrained rule baseline, not predictive eye tracking. It requires a viewport screenshot and element boxes. The optional DevTools snippet `scripts/s2c_capture.js` exports visible DOM boxes, font sizes and weights, and solid CSS foreground/background colors on a page the user may inspect. Save a matching viewport screenshot as `screenshot.png` beside the downloaded `s2c-capture.json`; edit the screenshot filename in JSON if needed. The script sends no data. Review its boxes before analysis; nested text, gradients, images, overlays, and cropped regions need human correction. Add a `face` element only if a face was explicitly annotated; the snippet does not detect faces.
 
+For an automated browser capture, use [the assistive reading view](assistive-view.md) and `s2c_browser_to_attention.py` to project its shared snapshot into this input schema. That projection is repeatable but still needs a box and color review, particularly for text over images or overlays.
+
 ```bash
 python scripts/s2c_attention.py render s2c-capture.json
 python scripts/s2c_visualize.py audit.json --attention attention.json --output report.html

@@ -204,7 +204,7 @@ def render(capture: Path, output: Path) -> dict:
         raise ValueError("Output JSON must be beside the capture manifest")
     frames = load_capture(capture)
     result = {"schema": "s2c-attention/v1", "model_version": VERSION,
-              "status": "untrained heuristic; no gaze validation", "frames": []}
+              "status": "untrained heuristic; held-out UEyes test trailed a position-only baseline", "frames": []}
     for frame in frames:
         full, _, gw, gh, ranked = densities(frame)
         contrast_checks = [check for element in frame["elements"]

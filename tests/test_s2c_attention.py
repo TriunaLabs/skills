@@ -54,7 +54,7 @@ class AttentionBaselineTests(unittest.TestCase):
             (root / "capture.json").write_text(json.dumps(capture), encoding="utf-8")
             result = ATTENTION.render(root / "capture.json", root / "attention.json")
             self.assertTrue((root / result["frames"][0]["overlay"]).is_file())
-            self.assertEqual(result["status"], "untrained heuristic; no gaze validation")
+            self.assertEqual(result["status"], "untrained heuristic; held-out UEyes test trailed a position-only baseline")
             self.assertEqual(result["frames"][0]["cues"][0]["contrast_ratio"], 21)
             self.assertEqual(result["frames"][0]["text_contrast_spotcheck"]["checks"][0]["status"],
                              "at_or_above_threshold")

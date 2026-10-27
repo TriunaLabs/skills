@@ -23,6 +23,7 @@ class S2CAssistiveTests(unittest.TestCase):
 <h1 aria-hidden='true'>Hidden hero</h1><h1>Visible hero</h1>
 <button tabindex='2'>Second in focus</button><button tabindex='1'>First in focus</button>
 <button style='width:20px;height:20px;padding:0' aria-label='Tiny action'>×</button>
+<a href='#join'>Join the list</a>
 """, encoding="utf-8")
             completed = subprocess.run(["node", str(SCRIPTS / "s2c_browser_capture.mjs"),
                             "--url", (directory / "index.html").as_uri(),
@@ -38,6 +39,7 @@ class S2CAssistiveTests(unittest.TestCase):
                              ["First in focus", "Second in focus"])
             result = ASSISTIVE.project(snapshot)
             self.assertEqual(result["audited_on"], "2026-10-26")
+            self.assertIsNotNone(result["frames"][0]["first_action_step"])
             self.assertTrue(any(item["kind"] == "target_review" for item in result["frames"][0]["findings"]))
             self.assertEqual([frame["viewport"]["width"] for frame in result["frames"]], [1265, 375, 320])
 

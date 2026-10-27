@@ -51,8 +51,9 @@ def project(snapshot: dict) -> dict:
             findings.insert(0, {"kind": "reflow_review", "id": None,
                                 "message": f"Document is {frame['document_width']} CSS px wide in a {frame['client_width']} px viewport; inspect horizontal scrolling."})
         first_heading = next((step for step in reading if step["role"] == "heading"), None)
+        action_words = ("waitlist", "join", "early access", "sign up", "request", "book", "start")
         first_action = next((step for step in reading if step["role"] in ("button", "link")
-                             and any(word in step["name"].lower() for word in ("waitlist", "sign up", "start"))), None)
+                             and any(word in step["name"].lower() for word in action_words)), None)
         frames.append({"id": frame["id"], "image": frame["image"], "url": frame["url"],
                        "captured_at": frame["captured_at"], "viewport": frame["viewport"],
                        "reading_path": reading, "focus_path": focus, "findings": findings,
