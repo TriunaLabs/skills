@@ -1,6 +1,8 @@
 dist/
 __pycache__/
 .venv/
+.venv-otel/
+.otel-wheels/
 node_modules/
 artifacts/
 output/

@@ -1,0 +1,3 @@
+# Optional trace export for the S2C orchestrated run. The core skill has no OTel dependency.
+opentelemetry-sdk==1.45.1
+opentelemetry-exporter-otlp-proto-http==1.45.1

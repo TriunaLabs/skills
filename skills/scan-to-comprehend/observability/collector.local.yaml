@@ -1,0 +1,40 @@
+# Dedicated local S2C collector. Use otelcol-contrib for the redaction processor.
+# The debug exporter is for development only; replace it with a protected backend.
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 127.0.0.1:4318
+
+processors:
+  redaction/s2c:
+    allow_all_keys: false
+    allowed_keys:
+      - s2c.run.id
+      - s2c.input.kind
+      - s2c.mode
+      - s2c.stage.mode
+      - s2c.capture.frame_count
+      - s2c.capture.bytes
+      - s2c.source.finding_count
+      - s2c.rule.pass_count
+      - s2c.rule.warning_count
+      - s2c.rule.review_count
+      - s2c.rule.not_checked_count
+      - s2c.rubric.version
+      - s2c.attention.frame_count
+      - s2c.report.bytes
+      - s2c.error.type
+    summary: silent
+  batch: {}
+
+exporters:
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [redaction/s2c, batch]
+      exporters: [debug]
