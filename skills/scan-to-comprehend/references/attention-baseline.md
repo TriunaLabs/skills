@@ -15,6 +15,8 @@ python scripts/s2c_visualize.py audit.json --attention attention.json --output r
 
 The source snippet cannot recover a text-on-image contrast ratio or infer faces. It includes only the first visible viewport and does not know the reader's goal. A page must be recaptured for each viewport, interaction state, or visual revision. Check box alignment, color assumptions, and whether transient overlays or sticky elements were present before sharing the heatmap.
 
+For an evidence-linked interpretation of component competition on a page, use the [AGD-to-audit guide](agd-to-audit.md). The paper informs audit questions; this baseline does not implement AGD.
+
 ## Accessibility screening and a testable attention hypothesis
 
 The same supplied text and background colors support a **separate** [WCAG 2.2 SC 1.4.3 text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html) spot check. It compares unrounded ratios to 4.5:1 for normal text or 3:1 for text at least 24 CSS px or about 18.67 CSS px at weight 700+. Missing font size or effective colors become `needs_review`; logos and non-text graphics are excluded. The report labels ratios from manually sampled colors as approximations. Neither a per-element result nor a screenshot constitutes a full WCAG pass/fail judgment. Verify effective CSS, overlays, states, device sizes, [non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html), and keyboard focus separately.
