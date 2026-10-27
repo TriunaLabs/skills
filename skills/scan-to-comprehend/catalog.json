@@ -1,10 +1,10 @@
 {
   "title": "Scan to Comprehend",
-  "summary": "Audit dense pages with source, assistive, robot visibility, retrieval, attention, and page-basics views from one browser capture or HTML prototype.",
+  "summary": "Audit dense pages with source, assistive, raw-versus-rendered robot visibility, retrieval, attention, and page-basics views from one browser capture or HTML prototype.",
   "badges": ["Ready", "Visual walkthrough", "Reader views", "Attention baseline"],
   "category": "Web & Content",
   "tags": ["content-design", "information-design", "scannability", "articles", "infographics", "websites", "comprehension"],
-  "version": "0.13.0",
+  "version": "0.14.0",
   "license": "MIT",
   "author": "TriunaLabs",
   "origin": "Original TriunaLabs workflow developed from a user-supplied Scan-to-Comprehend concept and Triuna Labs blueprint, checked against primary NN/g eye-tracking, visual-attention, and W3C sources. No third-party code or datasets are included.",

@@ -23,9 +23,29 @@ class SourceView(HTMLParser):
         self.assets: list[str] = []
         self.robots: list[str] = []
         self.suppressed = 0
+        self.head_depth = 0
+        self.title_depth = 0
+        self.title_parts: list[str] = []
+        self.description = ""
+        self.canonical = ""
+        self.lang = ""
+        self.headings: list[dict[str, str]] = []
+        self.paragraphs: list[str] = []
+        self._open_headings: list[tuple[str, list[str]]] = []
+        self._open_paragraphs: list[list[str]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = dict(attrs)
+        if tag == "head":
+            self.head_depth += 1
+        if tag == "title":
+            self.title_depth += 1
+        if tag == "html":
+            self.lang = values.get("lang") or ""
+        if tag in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+            self._open_headings.append((tag, []))
+        if tag == "p":
+            self._open_paragraphs.append([])
         if tag in {"script", "style", "template"}:
             self.suppressed += 1
         if tag == "a" and values.get("href"):
@@ -36,14 +56,118 @@ class SourceView(HTMLParser):
             self.assets.append(values["href"] or "")
         if tag == "meta" and (values.get("name") or "").lower() in {"robots", "googlebot"}:
             self.robots.append(values.get("content") or "")
+        if tag == "meta" and (values.get("name") or "").lower() == "description":
+            self.description = values.get("content") or ""
+        if tag == "link" and "canonical" in (values.get("rel") or "").lower().split():
+            self.canonical = values.get("href") or ""
 
     def handle_endtag(self, tag: str) -> None:
+        if tag == "head":
+            self.head_depth = max(0, self.head_depth - 1)
+        if tag == "title":
+            self.title_depth = max(0, self.title_depth - 1)
+        if tag in {"h1", "h2", "h3", "h4", "h5", "h6"}:
+            for index in range(len(self._open_headings) - 1, -1, -1):
+                name, parts = self._open_headings[index]
+                if name == tag:
+                    value = " ".join(" ".join(parts).split())
+                    if value:
+                        self.headings.append({"level": tag, "text": value})
+                    del self._open_headings[index]
+                    break
+        if tag == "p" and self._open_paragraphs:
+            value = " ".join(" ".join(self._open_paragraphs.pop()).split())
+            if value:
+                self.paragraphs.append(value)
         if tag in {"script", "style", "template"}:
             self.suppressed = max(0, self.suppressed - 1)
 
     def handle_data(self, data: str) -> None:
-        if not self.suppressed and data.strip():
-            self.text.append(data.strip())
+        if self.title_depth and data.strip():
+            self.title_parts.append(data.strip())
+        if not self.suppressed and not self.head_depth and data.strip():
+            value = data.strip()
+            self.text.append(value)
+            for _, parts in self._open_headings:
+                parts.append(value)
+            for parts in self._open_paragraphs:
+                parts.append(value)
+
+
+def _comparison(raw: SourceView, raw_html: str | None, frame: dict, base: str) -> dict:
+    """Inventory material differences without treating JavaScript dependence as invisibility."""
+    result: dict = {"schema": "s2c-raw-render-comparison/v1",
+                    "status": "compared" if raw_html is not None else "source_unavailable",
+                    "captured_at": frame.get("captured_at"), "viewport": frame.get("viewport"),
+                    "basis": "Initial HTML versus visible elements in one no-interaction Chromium capture"}
+    if raw_html is None:
+        return result
+
+    nodes = [node for node in frame.get("nodes", []) if node.get("visible")]
+    rendered_headings = [{"level": node.get("tag"), "text": str(node.get("text") or "").strip(),
+                          "node_id": node.get("id")}
+                         for node in nodes if node.get("tag") in {"h1", "h2", "h3", "h4", "h5", "h6"}
+                         and str(node.get("text") or "").strip()]
+    raw_heading_keys = {(row["level"], normalized(row["text"])) for row in raw.headings}
+    rendered_heading_keys = {(row["level"], normalized(row["text"])) for row in rendered_headings}
+    result["headings"] = {
+        "raw_count": len(raw.headings), "rendered_count": len(rendered_headings),
+        "rendered_only_count": sum((row["level"], normalized(row["text"])) not in raw_heading_keys
+                                   for row in rendered_headings),
+        "source_only_count": sum((row["level"], normalized(row["text"])) not in rendered_heading_keys
+                                 for row in raw.headings),
+        "rendered_only": [row for row in rendered_headings
+                          if (row["level"], normalized(row["text"])) not in raw_heading_keys][:12],
+        "source_only": [row for row in raw.headings
+                        if (row["level"], normalized(row["text"])) not in rendered_heading_keys][:12],
+    }
+
+    def link_target(href: str) -> str:
+        if not href or href.startswith("#"):
+            return ""
+        target = urljoin(base, href)
+        return (urlsplit(target)._replace(fragment="").geturl()
+                if urlsplit(target).scheme in {"http", "https", "file"} and s2c_site_basics.same_origin(base, target)
+                else "")
+
+    raw_links = {target for href in raw.links if (target := link_target(href))}
+    rendered_links: dict[str, str | None] = {}
+    for node in nodes:
+        if node.get("tag") == "a" and (target := link_target(str(node.get("href") or ""))):
+            rendered_links.setdefault(target, node.get("id"))
+    result["links"] = {"raw_count": len(raw_links), "rendered_count": len(rendered_links),
+                       "rendered_only_count": len(rendered_links.keys() - raw_links),
+                       "source_only_count": len(raw_links - rendered_links.keys()),
+                       "rendered_only": [{"url": url, "node_id": rendered_links[url]}
+                                         for url in sorted(rendered_links.keys() - raw_links)[:12]],
+                       "source_only": sorted(raw_links - rendered_links.keys())[:12]}
+
+    raw_text = normalized(" ".join(raw.text))
+    rendered_text = normalized(" ".join(str(node.get("text") or "") for node in nodes))
+    raw_paragraphs = list(dict.fromkeys(value for value in raw.paragraphs if len(normalized(value)) >= 20))
+    rendered_paragraphs = list(dict.fromkeys(str(node.get("text") or "").strip() for node in nodes
+                                             if node.get("tag") == "p" and len(normalized(node.get("text"))) >= 20))
+    rendered_only = [value for value in rendered_paragraphs if normalized(value[:250]) not in raw_text]
+    source_only = [value for value in raw_paragraphs if normalized(value[:250]) not in rendered_text]
+    result["paragraphs"] = {"raw_count": len(raw_paragraphs), "rendered_count": len(rendered_paragraphs),
+                            "rendered_only_count": len(rendered_only), "source_only_count": len(source_only),
+                            "rendered_only": [value[:220] for value in rendered_only[:8]],
+                            "source_only": [value[:220] for value in source_only[:8]]}
+
+    if frame.get("head") is not None:
+        head = frame["head"]
+        raw_head = {"title": " ".join(raw.title_parts).strip(), "meta_description": raw.description,
+                    "canonical": urljoin(base, raw.canonical) if raw.canonical else "",
+                    "robots_meta": ", ".join(raw.robots), "lang": raw.lang}
+        result["head_changes"] = [{"field": key, "initial": value, "rendered": str(head.get(key) or "")}
+                                  for key, value in raw_head.items()
+                                  if normalized(value) != normalized(head.get(key))]
+    else:
+        result["head_changes"] = []
+    result["limits"] = ["Only captured visible elements are compared; hidden tabs and scroll-triggered content may be missed.",
+                        "The paragraph lists are capped samples; counts describe all captured candidates.",
+                        "A rendering dependency is not proof that Google or another crawler cannot see content."]
+    return result
 
 
 def watched_phrases(frame: dict, requested: list[str] | None) -> list[str]:
@@ -174,11 +298,23 @@ def project(raw_html: str | None, snapshot: dict, *, important: list[str] | None
         checks.append({"id": "rendered_only_links", "status": "review", "title": "Links depend on rendering",
                        "evidence": f"{len(rendered_only_links)} sampled same-origin link(s) appear only after rendering.",
                        "action": "Put important crawl paths in initial HTML or verify rendered link discovery."})
+    comparison = _comparison(raw, raw_html, frame, base)
+    if comparison.get("status") == "compared":
+        changed = {row["field"] for row in comparison["head_changes"]}
+        if "canonical" in changed:
+            checks.append({"id": "canonical_changed", "status": "review", "title": "Canonical URL changes after rendering",
+                           "evidence": "The initial HTML and captured DOM expose different canonical values.",
+                           "action": "Confirm the intended canonical in the target crawler's rendered inspection."})
+        if comparison["headings"]["rendered_only_count"]:
+            checks.append({"id": "rendered_only_headings", "status": "review", "title": "Headings depend on rendering",
+                           "evidence": f"{comparison['headings']['rendered_only_count']} visible heading(s) are absent from initial HTML.",
+                           "action": "Check whether the page's key headings are available to the target crawler."})
     return {"schema": "s2c-robot-visibility/v1", "audited_on": snapshot.get("audited_on"), "url": base,
             "basis": "Raw response compared with one Chromium no-interaction DOM; not a Googlebot emulation",
             "important_basis": "user supplied" if important else "first visible headings",
             "phrases": phrase_rows, "rendered_only_links": rendered_only_links,
             "raw_robots_meta": raw.robots, "rendered_robots_meta": (frame.get("head") or {}).get("robots_meta", ""),
+            "comparison": comparison,
             "x_robots_tag": x_robots_tag,
             "robots_txt_status": robots.get("status", "not_checked"), "blocked_assets": blocked_assets[:15],
             "checks": checks,

@@ -25,6 +25,11 @@ def build():
             shutil.copy2(path, out / path.name)
         elif path.is_dir():
             shutil.copytree(path, out / path.name, dirs_exist_ok=True)
+    demo = out / 'examples' / 's2c-demo'
+    demo.mkdir(parents=True, exist_ok=True)
+    for name in ('index.html', 'app.js', 'styles.css', 'programs.html', 'siblings.html',
+                 'sample.html', 'corrected.html'):
+        shutil.copy2(ROOT / 'examples' / 's2c-demo' / name, demo / name)
     (out / '.nojekyll').touch()
     (out / 'catalog.json').write_text(json.dumps(public_records, indent=2), encoding='utf-8')
     for record in public_records:

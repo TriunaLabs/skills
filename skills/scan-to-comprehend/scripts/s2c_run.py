@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -67,6 +68,11 @@ def run(args: argparse.Namespace) -> dict:
         raise ValueError("Give one URL, one HTML prototype, or both source JSON and snapshot for replay")
     if args.source_json and not args.snapshot:
         raise ValueError("--source-json requires --snapshot")
+    raw_html_file = getattr(args, "raw_html_file", None)
+    if raw_html_file and not (args.source_json and args.snapshot):
+        raise ValueError("--raw-html-file requires --source-json and --snapshot replay inputs")
+    if raw_html_file and raw_html_file.stat().st_size > s2c_audit.MAX_BYTES:
+        raise ValueError("Replay initial HTML exceeds 2 MB")
     if html_source is not None and len(html_source.encode("utf-8")) > s2c_audit.MAX_BYTES:
         raise ValueError("HTML prototype exceeds 2 MB")
     important = getattr(args, "important", None) or []
@@ -93,7 +99,7 @@ def run(args: argparse.Namespace) -> dict:
             "s2c.input.kind": "replay" if args.snapshot else ("html" if html_source is not None else "url"),
         }) as root:
             trace_id = Telemetry.trace_id(root)
-            raw_html = html_source
+            raw_html = (raw_html_file.read_text(encoding="utf-8") if raw_html_file else html_source)
             x_robots_tag = ""
             with telemetry.span("s2c.source_audit", {
                 "s2c.stage.mode": "reuse" if args.source_json else ("upload" if html_source is not None else "fetch"),
@@ -115,6 +121,8 @@ def run(args: argparse.Namespace) -> dict:
                 if audit.get("schema_version") != "1.1" or not audit.get("reports"):
                     raise ValueError("Expected S2C source audit schema_version 1.1")
                 write_json(output / "audit.json", audit)
+                if raw_html is not None:
+                    (output / "source.html").write_bytes(raw_html.encode("utf-8"))
                 span.set_attribute("s2c.source.finding_count", sum(len(r.get("findings", [])) for r in audit["reports"]))
 
             with telemetry.span("s2c.capture", {
@@ -203,6 +211,7 @@ def run(args: argparse.Namespace) -> dict:
                     "important_phrases": important, "rubric_version": rubric["rubric_version"],
                     "retrieval_question": reader_views["question"],
                     "scoring_profile_id": s2c_scoring_profile.fingerprint(profile),
+                    "source_html_sha256": hashlib.sha256(raw_html.encode("utf-8")).hexdigest() if raw_html is not None else None,
                     "telemetry": {"enabled": args.otel, "export_accepted": telemetry.finish()},
                     "artifacts": {"report": "report.html", "source": "audit.json",
                                   "capture": "capture/snapshot.json", "assistive": "assistive.json",
@@ -211,6 +220,7 @@ def run(args: argparse.Namespace) -> dict:
                                   "site_basics": "site-basics.json",
                                   "robot_visibility": "robot-visibility.json",
                                   "scoring_profile": "scoring-profile.json",
+                                  "source_html": "source.html" if raw_html is not None else None,
                                   "attention": "capture/attention.json" if attention else None}}
         write_json(output / "run.json", manifest)
         return manifest
@@ -226,6 +236,7 @@ def main() -> int:
     parser.add_argument("--important", action="append", default=[], help="Phrase this page should make discoverable; repeat up to five times")
     parser.add_argument("--source-json", type=Path, help="Existing S2C source audit for offline replay")
     parser.add_argument("--snapshot", type=Path, help="Existing Chromium snapshot for offline replay")
+    parser.add_argument("--raw-html-file", type=Path, help="Saved initial HTML for a source JSON and snapshot replay")
     parser.add_argument("--output", required=True, type=Path, help="New or empty output directory")
     parser.add_argument("--rubric-config", type=Path, help="Versioned editable browser rubric config")
     parser.add_argument("--scoring-profile", type=Path, help="Versioned browser, crawler, retrieval, and gap profile")

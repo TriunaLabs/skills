@@ -60,6 +60,47 @@ class RobotVisibilityTests(unittest.TestCase):
         self.assertTrue({"source_only_text", "wanted_text_missing"}.issubset(
             {item["id"] for item in result["checks"]}))
 
+    def test_structured_raw_render_comparison_tracks_evidence_and_metadata(self):
+        raw = ("<html lang='en'><head><title>Learning plans</title>"
+               "<link rel='canonical' href='/plans'><meta name='description' content='Original plans'>"
+               "</head><body><h1>Learning plans</h1><p>Choose a learning path for one child.</p>"
+               "<a href='/plans'>Plans</a></body></html>")
+        self.snapshot["frames"][0].update({
+            "captured_at": "2026-10-27T10:00:00Z", "viewport": {"width": 1280, "height": 800},
+            "head": {"title": "Learning plans", "meta_description": "Updated plans",
+                     "canonical": "https://example.com/plans-new", "robots_meta": "", "lang": "en"},
+            "nodes": [
+                {"id": "n00001", "tag": "h1", "text": "Learning plans", "visible": True},
+                {"id": "n00002", "tag": "h2", "text": "Options for siblings", "visible": True},
+                {"id": "n00003", "tag": "p", "text": "Choose a learning path for one child.", "visible": True},
+                {"id": "n00004", "tag": "p", "text": "Compare schedules for multiple children.", "visible": True},
+                {"id": "n00005", "tag": "a", "text": "Plans", "href": "/plans", "visible": True},
+                {"id": "n00006", "tag": "a", "text": "Sibling schedule", "href": "/siblings", "visible": True},
+            ]})
+        result = s2c_robot_visibility.project(raw, self.snapshot, robots={"status": "absent", "text": ""})
+        comparison = result["comparison"]
+        self.assertEqual(comparison["headings"]["rendered_only"],
+                         [{"level": "h2", "text": "Options for siblings", "node_id": "n00002"}])
+        self.assertEqual(comparison["links"]["rendered_only"],
+                         [{"url": "https://example.com/siblings", "node_id": "n00006"}])
+        self.assertEqual(comparison["paragraphs"]["rendered_only_count"], 1)
+        self.assertEqual({row["field"] for row in comparison["head_changes"]},
+                         {"meta_description", "canonical"})
+        self.assertTrue({"canonical_changed", "rendered_only_headings"}.issubset(
+            {item["id"] for item in result["checks"]}))
+        source = {"schema_version": "1.1", "audited_on": "2026-10-27", "reports": [{
+            "source": "https://example.com/services", "headings": [], "findings": [], "suggestions": [],
+            "strengths": [], "next_checks": [], "estimated_cognitive_load": {"score": 0}}]}
+        report = s2c_visualize.render(source, robot_visibility=result)
+        self.assertIn("Initial HTML ⇄ rendered page", report)
+        self.assertIn("Options for siblings", report)
+        self.assertIn("https://example.com/siblings", report)
+
+    def test_replay_without_raw_html_has_no_false_differences(self):
+        result = s2c_robot_visibility.project(None, self.snapshot)
+        self.assertEqual(result["comparison"]["status"], "source_unavailable")
+        self.assertNotIn("headings", result["comparison"])
+
 
 if __name__ == "__main__":
     unittest.main()

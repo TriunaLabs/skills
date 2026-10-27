@@ -1,0 +1,7 @@
+# Synthetic S2C demo site
+
+This original, fictional site is a reproducible audit target. The home page inserts a sibling section and link with JavaScript, changes its canonical and description after render, and links to a deliberately missing `missing.html`. `corrected.html` keeps the sibling path and metadata in initial HTML. These are examples for testing report behavior, not claims that all JavaScript content is invisible to search engines.
+
+From the repository root, run `python examples/s2c-demo/run_demo.py`. It opens the owned fixture through a local `file:` URL, captures the page with the repository's Playwright setup, and writes a dated report under `tmp/`. No network request is needed. Install the repository's Node development dependencies and Playwright Chromium first. Use `--output PATH` to select a new or empty report directory; use `--skip-attention` to omit the experimental heatmap.
+
+The generated `run.json` records `source_html_sha256` and the `source.html`, `capture/snapshot.json`, `robot-visibility.json`, and `report.html` artifacts. Replaying those files lets the raw/rendered findings be checked without another website request. It also emits `site-graph.json` and `site-graph.html`: the initial HTML route to the sibling page takes three pages, while the rendered home-page link shortens it to two. The graph reports the deliberately missing page as a failed fetch. The rendered route uses only the captured home page; the remaining pages use initial HTML links.

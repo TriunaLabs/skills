@@ -31,7 +31,7 @@ python skills/scan-to-comprehend/scripts/s2c_run.py `
   --otlp-endpoint http://127.0.0.1:4318/v1/traces
 ```
 
-For a skill-folder-only installation, install `observability/requirements.txt` from inside that folder. The output directory must be new or empty. It contains `run.json`, `audit.json`, `capture/snapshot.json`, `assistive.json`, `browser-rubric.json`, optional `capture/attention.json`, and `report.html`. `run.json` records the run ID, trace ID, audit date, rubric version, and artifact names. The URL stays in that local manifest and report; it does not become a trace attribute. Protect and retain artifacts according to the later hosted account policy.
+For a skill-folder-only installation, install `observability/requirements.txt` from inside that folder. The output directory must be new or empty. It contains `run.json`, `audit.json`, `capture/snapshot.json`, `assistive.json`, `browser-rubric.json`, optional `capture/attention.json`, and `report.html`. Fresh URL/HTML runs and replay with `--raw-html-file` also save `source.html`; `run.json` records its SHA-256 digest. The manifest also records the run ID, trace ID, audit date, rubric version, and artifact names. The URL stays in that local manifest and report; it does not become a trace attribute. Protect and retain source HTML and other artifacts according to the later hosted account policy.
 
 ## Trace contract
 

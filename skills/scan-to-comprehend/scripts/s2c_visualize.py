@@ -130,6 +130,58 @@ def robot_visibility_html(result: dict) -> str:
         f"<li class='robot-check {escaped(item.get('status', 'review'))}'><strong>{escaped(item.get('title', 'Check'))}</strong>"
         f"<p>{escaped(item.get('evidence', ''))}</p><p><b>Suggested action:</b> {escaped(item.get('action', ''))}</p></li>"
         for item in result.get("checks", []))
+    comparison = result.get("comparison") or {}
+    comparison_html = ""
+    if comparison.get("status") == "compared":
+        headings = comparison.get("headings") or {}
+        links = comparison.get("links") or {}
+        paragraphs = comparison.get("paragraphs") or {}
+        metrics = "".join(
+            f"<div><strong>{escaped(data.get('rendered_only_count', 0))}</strong><span>{escaped(label)} added after render</span></div>"
+            for label, data in (("headings", headings), ("internal links", links), ("paragraphs", paragraphs)))
+        changes = "".join(
+            f"<tr><th scope='row'>{escaped(item.get('field', ''))}</th><td>{escaped(item.get('initial', '') or '—')}</td>"
+            f"<td>{escaped(item.get('rendered', '') or '—')}</td></tr>"
+            for item in comparison.get("head_changes", []))
+        def evidence_list(items: list, *, kind: str) -> str:
+            if not items:
+                return "<p>None in the captured comparison.</p>"
+            values = []
+            for item in items:
+                if isinstance(item, dict):
+                    value = item.get("url") or item.get("text") or ""
+                    node_id = item.get("node_id")
+                    if item.get("level"):
+                        value = f"{item['level']} · {value}"
+                    if node_id:
+                        value += f" · DOM {node_id}"
+                else:
+                    value = str(item)
+                values.append(f"<li>{escaped(value)}</li>")
+            return f"<ul class='raw-render-list {escaped(kind)}'>" + "".join(values) + "</ul>"
+        comparison_html = (
+            "<div class='raw-render-compare'><h3>Initial HTML ⇄ rendered page</h3>"
+            f"<p>Captured {escaped(comparison.get('captured_at') or 'time unavailable')}; "
+            "counts describe this captured viewport and state.</p>"
+            f"<div class='raw-render-metrics'>{metrics}</div>"
+            + ("<div class='basic-scroll'><table><thead><tr><th>Head field</th><th>Initial HTML</th>"
+               "<th>Rendered DOM</th></tr></thead><tbody>" + changes + "</tbody></table></div>" if changes else "")
+            + "<div class='raw-render-columns'>"
+            + "<details><summary>Headings added after render · " + escaped(headings.get("rendered_only_count", 0))
+            + "</summary>" + evidence_list(headings.get("rendered_only", []), kind="headings") + "</details>"
+            + "<details><summary>Headings absent from visible capture · " + escaped(headings.get("source_only_count", 0))
+            + "</summary>" + evidence_list(headings.get("source_only", []), kind="headings") + "</details>"
+            + "<details><summary>Internal links added after render · " + escaped(links.get("rendered_only_count", 0))
+            + "</summary>" + evidence_list(links.get("rendered_only", []), kind="links") + "</details>"
+            + "<details><summary>Initial links absent from visible capture · " + escaped(links.get("source_only_count", 0))
+            + "</summary>" + evidence_list(links.get("source_only", []), kind="links") + "</details>"
+            + "<details><summary>Paragraphs added after render · " + escaped(paragraphs.get("rendered_only_count", 0))
+            + "</summary>" + evidence_list(paragraphs.get("rendered_only", []), kind="paragraphs") + "</details>"
+            + "<details><summary>Initial paragraphs absent from visible capture · " + escaped(paragraphs.get("source_only_count", 0))
+            + "</summary>" + evidence_list(paragraphs.get("source_only", []), kind="paragraphs") + "</details>"
+            + "</div><p class='basic-note'>Samples are capped; a difference is a review candidate, not proof of indexing failure.</p></div>")
+    elif comparison.get("status") == "source_unavailable":
+        comparison_html = "<p class='basic-note'>Initial HTML was not saved for this replay; detailed raw/render comparison is unavailable.</p>"
     return ("<section class='robot-visibility' id='robot-visibility'><p class='eyebrow'>ROBOT VISIBILITY / RAW VS RENDERED</p>"
             "<h2>Can a crawler find the important information?</h2>"
             "<p class='boundary'>This compares the initial HTML with one Chromium capture before clicks or scrolling. "
@@ -143,6 +195,7 @@ def robot_visibility_html(result: dict) -> str:
                if result.get("rendered_only_links") else "")
             + ("<p><b>Potentially blocked CSS/JS:</b> " + ", ".join(escaped(link) for link in result.get("blocked_assets", [])[:8]) + "</p>"
                if result.get("blocked_assets") else "")
+            + comparison_html
             + "<p class='basic-note'>Crawler-specific confirmation belongs in the target search engine's URL Inspection tool. "
             "This screen does not establish indexing or search ranking.</p></section>")
 
