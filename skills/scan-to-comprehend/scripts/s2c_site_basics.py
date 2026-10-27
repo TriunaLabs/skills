@@ -108,7 +108,7 @@ def get_public(url: str, max_bytes: int = 65536, timeout: int = LINK_TIMEOUT_SEC
         if parsed.query:
             target += "?" + parsed.query
         host = parsed.hostname if port in (80, 443) else f"{parsed.hostname}:{port}"
-        connection.request("GET", target, headers={"Host": host, "User-Agent": "S2C-RobotVisibility/1.0",
+        connection.request("GET", target, headers={"Host": host, "User-Agent": "S2C-Audit/1.0",
                                                    "Accept-Encoding": "identity"})
         response = connection.getresponse()
         data = response.read(max_bytes + 1)
@@ -190,11 +190,14 @@ def project(snapshot: dict, link_probes: list[dict] | None = None) -> dict:
     ]
     link_probes = link_probes or []
     prototype = snapshot.get("source_kind") == "html"
+    capture_network = [{"viewport": item.get("id"), **item["network_guard"]}
+                       for item in frames if isinstance(item.get("network_guard"), dict)]
     return {"schema": "s2c-site-basics/v1", "audited_on": snapshot.get("audited_on"), "url": base,
             "checked_at": datetime.now(timezone.utc).isoformat(),
             "scope": ("One offline HTML prototype, three viewport renders; scripts and external requests blocked"
                       if prototype else "One captured page, three viewport navigations, and at most eight same-origin HEAD probes"),
             "source_kind": "html" if prototype else "url",
+            "capture_network": capture_network,
             "performance": [{"viewport": item.get("id"), **({} if prototype else (item.get("performance") or {}))} for item in frames],
             "checks": checks, "contact_evidence": (emails + phones + contact)[:10],
             "privacy_evidence": privacy[:5], "terms_evidence": terms[:5],

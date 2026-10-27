@@ -27,6 +27,7 @@ import s2c_robot_visibility  # noqa: E402
 import s2c_scoring_profile  # noqa: E402
 import s2c_site_basics  # noqa: E402
 import s2c_visualize  # noqa: E402
+import s2c_api_result  # noqa: E402
 
 PUBLIC = Path(__file__).resolve().parent
 RUNS = ROOT / ".playground-runs"
@@ -276,7 +277,7 @@ class Handler(BaseHTTPRequestHandler):
             else:
                 self.send_bytes((target / "revision.json").read_bytes(), "application/json; charset=utf-8")
             return
-        match = re.fullmatch(r"/api/runs/([0-9a-f]{32})(/(?:report|views))?", path)
+        match = re.fullmatch(r"/api/runs/([0-9a-f]{32})(/(?:report|views|result))?", path)
         if not match:
             self.send_json({"error": "Not found."}, 404)
             return
@@ -299,6 +300,12 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_json({"error": "Projection JSON is not ready."}, 409)
                 return
             self.send_bytes(views.read_bytes(), "application/json; charset=utf-8")
+            return
+        if artifact == "/result":
+            if summary(run_id)["status"] != "complete":
+                self.send_json({"error": "Result is not ready."}, 409)
+                return
+            self.send_json(s2c_api_result.from_run(RUNS / run_id))
             return
         self.send_json(summary(run_id))
 

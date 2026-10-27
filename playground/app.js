@@ -115,6 +115,7 @@ function displayResult(result) {
   $('#robot-count').textContent = result.robot_visibility_reviews ?? '—';
   $('#source-findings').textContent = result.source_findings;
   $('#open-report').href = result.report_url;
+  $('#result-json').href = `/api/runs/${activeRun}/result`;
   $('#report-frame').src = result.report_url;
   reportUrl = result.report_url;
   $('#view-nav').hidden = !result.reader_views;

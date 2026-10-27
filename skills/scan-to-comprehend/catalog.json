@@ -4,11 +4,11 @@
   "badges": ["Ready", "Visual walkthrough", "Reader views", "Attention baseline"],
   "category": "Web & Content",
   "tags": ["content-design", "information-design", "scannability", "articles", "infographics", "websites", "comprehension"],
-  "version": "0.14.0",
+  "version": "0.15.0",
   "license": "MIT",
   "author": "TriunaLabs",
   "origin": "Original TriunaLabs workflow developed from a user-supplied Scan-to-Comprehend concept and Triuna Labs blueprint, checked against primary NN/g eye-tracking, visual-attention, and W3C sources. No third-party code or datasets are included.",
-  "requirements": ["Python 3.10+ for optional source audit and HTML report; Pillow for the attention baseline. The optional assistive capture needs Node, Playwright, and Chrome or bundled Chromium; public URL capture needs network access. The optional orchestrated OTLP trace export needs observability/requirements.txt and an explicitly configured endpoint. The optional section probe requires a browser with Pointer Events and explicit host activation. Rendered and reader validation requires suitable tools and participants."],
+  "requirements": ["Python 3.10+ for optional source audit and HTML report; Pillow for the attention baseline. The optional assistive capture needs Node, Playwright, and Chrome or bundled Chromium; public URL capture needs network access. The local MCP adapter requires integrations/requirements-mcp.txt. The optional orchestrated OTLP trace export needs observability/requirements.txt and an explicitly configured endpoint. The optional section probe requires a browser with Pointer Events and explicit host activation. Rendered and reader validation requires suitable tools and participants."],
   "compatibility": {"codex": "format-compatible", "claude-code": "format-compatible", "other-agents": "untested"},
   "examples": [
     "Restructure this technical article so a reader can find the conclusion quickly and still inspect the methods.",

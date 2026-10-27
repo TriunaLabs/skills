@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://triunalabs.github.io/skills/skills/scan-to-comprehend/references/api-result.schema.json",
+  "title": "S2C deterministic run result v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "run_id", "audited_on", "input_kind", "url", "rubric_version", "scoring_profile_id", "score", "counts", "actions", "provenance", "artifacts", "limits"],
+  "properties": {
+    "schema": { "const": "s2c-api-result/v1" },
+    "run_id": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+    "audited_on": { "type": "string", "format": "date" },
+    "input_kind": { "enum": ["url", "html", "replay"] },
+    "url": { "type": "string" },
+    "rubric_version": { "type": "string" },
+    "scoring_profile_id": { "type": "string" },
+    "score": {
+      "type": "object", "required": ["earned", "assessed", "possible", "percent_of_assessed"],
+      "properties": {
+        "earned": { "type": "integer", "minimum": 0 },
+        "assessed": { "type": "integer", "minimum": 0 },
+        "possible": { "type": "integer", "minimum": 0 },
+        "percent_of_assessed": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 }
+      }
+    },
+    "counts": {
+      "type": "object", "required": ["pass", "warning", "review", "not_checked"],
+      "properties": {
+        "pass": { "type": "integer", "minimum": 0 },
+        "warning": { "type": "integer", "minimum": 0 },
+        "review": { "type": "integer", "minimum": 0 },
+        "not_checked": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "actions": { "type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "status", "scope", "title", "evidence", "suggestion"],
+      "properties": {
+        "id": { "type": "string" }, "status": { "type": "string" },
+        "scope": { "type": "string" }, "title": { "type": "string" },
+        "evidence": { "type": "array", "items": { "type": "string" } },
+        "suggestion": { "type": "string" }
+      }
+    } },
+    "provenance": {
+      "type": "object", "required": ["source_html_sha256", "capture_network", "trace_id"],
+      "properties": {
+        "source_html_sha256": { "type": ["string", "null"] },
+        "capture_network": { "type": "array", "items": { "type": "object" } },
+        "trace_id": { "type": ["string", "null"] }
+      }
+    },
+    "artifacts": { "type": "object" },
+    "limits": { "type": "array", "items": { "type": "string" } }
+  }
+}

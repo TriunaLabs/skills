@@ -25,6 +25,7 @@ jobs:
       - run: python scripts/validate.py
       - run: python -m unittest discover -s tests
       - run: node --test tests/s2c_section_signals.test.cjs
+      - run: node --test tests/test_s2c_public_browser_guard.mjs
       - run: python scripts/build.py
       - uses: actions/upload-pages-artifact@v3
         with:

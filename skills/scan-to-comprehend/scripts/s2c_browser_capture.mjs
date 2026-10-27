@@ -3,6 +3,7 @@
 import { chromium } from 'playwright';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
+import { makePublicGuard } from './s2c_public_browser_guard.mjs';
 
 const args = process.argv.slice(2);
 const value = (flag, fallback) => {
@@ -13,6 +14,7 @@ const url = value('--url');
 const htmlStdin = args.includes('--html-stdin');
 const out = value('--out');
 const auditDate = value('--audit-date', new Date().toISOString().slice(0, 10));
+const python = value('--python', process.platform === 'win32' ? 'python' : 'python3');
 if (!out || (htmlStdin === Boolean(url)) || (url && !/^(https?:\/\/|file:\/\/)/.test(url))) {
   console.error('Usage: node s2c_browser_capture.mjs (--url https://example.com/ | --html-stdin) --out capture-dir');
   process.exit(2);
@@ -49,6 +51,11 @@ try {
   for (const viewport of viewports) {
     const context = await browser.newContext({ viewport, deviceScaleFactor: 1, reducedMotion: 'reduce',
       javaScriptEnabled: !htmlStdin, serviceWorkers: 'block' });
+    const guard = !htmlStdin && !url.startsWith('file:') ? makePublicGuard(url, python) : null;
+    if (guard) {
+      await context.route('**/*', route => guard.handle(route));
+      await context.routeWebSocket('**/*', ws => ws.close());
+    }
     const page = await context.newPage();
     if (htmlStdin) {
       await page.route('**/*', route => route.abort());
@@ -57,14 +64,18 @@ try {
       await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 });
     }
     await page.locator('body').waitFor();
-    await page.evaluate(() => document.fonts?.ready);
+    if (guard && new URL(page.url()).origin !== new URL(url).origin) {
+      throw new Error('Browser navigation left the audited origin');
+    }
+    await page.evaluate(() => Promise.race([document.fonts?.ready,
+      new Promise(resolve => setTimeout(resolve, 2000))]));
     await page.waitForTimeout(800);
     const capturedAt = new Date().toISOString();
     const image = `${viewport.id}.png`;
     await page.screenshot({ path: join(target, image), animations: 'disabled' });
     const dom = await page.evaluate(() => {
       const selector = 'h1,h2,h3,h4,h5,h6,p,a,button,input,select,textarea,img,[role],[tabindex],summary,[contenteditable],svg[role="img"]';
-      const candidates = [...document.querySelectorAll(selector)];
+      const candidates = [...document.querySelectorAll(selector)].slice(0, 5000);
       const backdrop = element => {
         for (let item = element; item; item = item.parentElement) {
           const style = getComputedStyle(item);
@@ -186,9 +197,12 @@ try {
       viewport: { width: viewport.width, height: viewport.height }, dpr: 1, image,
       ...dom, ax_path: axPath, focus_path: focusPath, focus_stop: focusStop,
       capture_basis: htmlStdin ? 'Inline HTML in Chromium with JavaScript disabled and external requests blocked' :
+        guard ? 'Chromium rendered DOM with pinned same-origin GET responses, CDP accessibility tree, observed Tab traversal' :
         'Chromium rendered DOM, CDP accessibility tree, observed Tab traversal',
+      network_guard: guard ? guard.stats() : null,
       limitations: ['AX order is browser-reported, not a screen reader speech trace.',
         'Tab traversal may omit elements in shadow roots or cross-origin frames.',
+        ...(guard ? ['Cross-origin assets, non-GET requests, and WebSockets were blocked; the page may differ from normal browsing.'] : []),
         'A single viewport and state do not establish WCAG conformance.'] });
     await context.close();
   }

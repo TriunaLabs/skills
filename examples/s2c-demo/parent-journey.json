@@ -1,0 +1,10 @@
+{
+  "schema": "s2c-journey-scenario/v1",
+  "id": "parent-multiple-children",
+  "role": "Parent planning for multiple children",
+  "goal": "Find whether two children can follow different schedules and where to compare them",
+  "target": "siblings.html",
+  "device": "desktop",
+  "required_phrases": ["Sibling schedules", "Two learning paths"],
+  "success_action": "Compare sibling schedules"
+}

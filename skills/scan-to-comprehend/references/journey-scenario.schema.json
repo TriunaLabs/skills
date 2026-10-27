@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://triunalabs.github.io/skills/skills/scan-to-comprehend/references/journey-scenario.schema.json",
+  "title": "S2C explicit reader task v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "id", "role", "goal"],
+  "properties": {
+    "schema": { "const": "s2c-journey-scenario/v1" },
+    "id": { "type": "string", "minLength": 1, "maxLength": 80 },
+    "role": { "type": "string", "minLength": 1, "maxLength": 120 },
+    "goal": { "type": "string", "minLength": 1, "maxLength": 300 },
+    "target": { "type": "string", "maxLength": 300 },
+    "device": { "enum": ["desktop", "mobile", "reflow-320"] },
+    "required_phrases": { "type": "array", "maxItems": 8,
+      "items": { "type": "string", "minLength": 3, "maxLength": 160 } },
+    "success_action": { "type": "string", "maxLength": 300 }
+  }
+}

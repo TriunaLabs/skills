@@ -12,6 +12,7 @@ import re
 import shutil
 import subprocess
 import sys
+from urllib.robotparser import RobotFileParser
 import uuid
 
 import s2c_audit
@@ -26,6 +27,19 @@ from s2c_telemetry import Telemetry
 
 
 SCRIPTS = Path(__file__).resolve().parent
+
+
+def public_robots_preflight(url: str) -> dict:
+    """Decline a live URL when its robots policy cannot be verified or forbids S2C."""
+    robots = s2c_robot_visibility.fetch_robots(url)
+    if robots["status"] not in {"retrieved", "absent"}:
+        raise ValueError("robots.txt could not be checked; retry when it is available")
+    if robots["status"] == "retrieved":
+        parser = RobotFileParser()
+        parser.parse(robots["text"].splitlines())
+        if not parser.can_fetch("S2C-Audit/1.0", url):
+            raise ValueError("robots.txt disallows S2C-Audit at this URL")
+    return robots
 
 
 def write_json(path: Path, payload: dict) -> None:
@@ -86,6 +100,7 @@ def run(args: argparse.Namespace) -> dict:
         raise ValueError("Choose --scoring-profile or --rubric-config, not both")
     profile = (s2c_scoring_profile.validate(scoring_profile_data) if scoring_profile_data is not None
                else s2c_scoring_profile.read(scoring_profile_path))
+    robots_preflight = public_robots_preflight(args.url) if args.url and not args.snapshot else None
     output.mkdir(parents=True, exist_ok=True)
     write_json(output / "scoring-profile.json", profile)
     telemetry = Telemetry.create(args.otel, args.otlp_endpoint)
@@ -133,9 +148,10 @@ def run(args: argparse.Namespace) -> dict:
                 else:
                     capture_dir.mkdir(parents=True, exist_ok=True)
                     command = ["node", str(SCRIPTS / "s2c_browser_capture.mjs"), "--out", str(capture_dir)]
+                    command += ["--python", sys.executable]
                     command += ["--html-stdin"] if html_source is not None else ["--url", args.url]
                     subprocess.run(command, input=html_source if html_source is not None else None,
-                                   check=True, capture_output=True, text=True, cwd=SCRIPTS.parents[2])
+                                   check=True, capture_output=True, text=True, cwd=SCRIPTS.parents[2], timeout=180)
                     snapshot = json.loads((capture_dir / "snapshot.json").read_text(encoding="utf-8"))
                 span.set_attribute("s2c.capture.frame_count", len(snapshot["frames"]))
                 span.set_attribute("s2c.capture.bytes", (capture_dir / "snapshot.json").stat().st_size)
@@ -149,8 +165,8 @@ def run(args: argparse.Namespace) -> dict:
                 span.set_attribute("s2c.links.possible_broken_count", site_basics["link_summary"]["possible_broken"])
 
             with telemetry.span("s2c.projection.robot_visibility") as span:
-                robots = (s2c_robot_visibility.fetch_robots(args.url) if args.url and not args.snapshot
-                          else {"status": "not_applicable" if html_source is not None else "not_checked", "text": ""})
+                robots = (robots_preflight if robots_preflight is not None else
+                          {"status": "not_applicable" if html_source is not None else "not_checked", "text": ""})
                 robot_visibility = s2c_robot_visibility.project(raw_html, snapshot, important=important,
                                                                  x_robots_tag=x_robots_tag, robots=robots)
                 write_json(output / "robot-visibility.json", robot_visibility)
@@ -212,6 +228,7 @@ def run(args: argparse.Namespace) -> dict:
                     "retrieval_question": reader_views["question"],
                     "scoring_profile_id": s2c_scoring_profile.fingerprint(profile),
                     "source_html_sha256": hashlib.sha256(raw_html.encode("utf-8")).hexdigest() if raw_html is not None else None,
+                    "capture_network": site_basics.get("capture_network", []),
                     "telemetry": {"enabled": args.otel, "export_accepted": telemetry.finish()},
                     "artifacts": {"report": "report.html", "source": "audit.json",
                                   "capture": "capture/snapshot.json", "assistive": "assistive.json",
@@ -247,7 +264,8 @@ def main() -> int:
     args = parser.parse_args()
     try:
         result = run(args)
-    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as error:
+    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError,
+            subprocess.TimeoutExpired) as error:
         print(f"S2C run failed: {error}", file=sys.stderr)
         return 2
     print(args.output.resolve() / result["artifacts"]["report"])

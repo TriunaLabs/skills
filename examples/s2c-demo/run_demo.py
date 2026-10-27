@@ -17,6 +17,7 @@ SCRIPTS = ROOT / "skills" / "scan-to-comprehend" / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import s2c_audit  # noqa: E402
 import s2c_site_graph  # noqa: E402
+import s2c_journey  # noqa: E402
 
 
 def main() -> int:
@@ -53,13 +54,20 @@ def main() -> int:
                                      snapshot=snapshot, target="siblings.html")
         (output / "site-graph.json").write_text(json.dumps(graph, indent=2) + "\n", encoding="utf-8")
         (output / "site-graph.html").write_text(s2c_site_graph.render_report(graph), encoding="utf-8")
+        scenario = json.loads((SITE / "parent-journey.json").read_text(encoding="utf-8"))
+        journey = s2c_journey.project(graph, scenario, snapshot)
+        (output / "journey.json").write_text(json.dumps(journey, indent=2) + "\n", encoding="utf-8")
+        (output / "journey.html").write_text(s2c_journey.render(journey), encoding="utf-8")
         manifest_path = output / "run.json"
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest["artifacts"]["site_graph"] = "site-graph.json"
         manifest["artifacts"]["site_graph_report"] = "site-graph.html"
+        manifest["artifacts"]["journey"] = "journey.json"
+        manifest["artifacts"]["journey_report"] = "journey.html"
         manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     print(f"Report: {output.resolve() / 'report.html'}")
     print(f"Site graph: {output.resolve() / 'site-graph.html'}")
+    print(f"Parent journey: {output.resolve() / 'journey.html'}")
     return 0
 
 

@@ -7,9 +7,12 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "skills/scan-to-comprehend/scripts"))
+import s2c_api_result  # noqa: E402
 
 
 class S2CDemoTests(unittest.TestCase):
@@ -39,6 +42,24 @@ class S2CDemoTests(unittest.TestCase):
             self.assertEqual(len(graph["task_path"]["initial_html"]), 3)
             self.assertEqual(len(graph["task_path"]["rendered_start"]), 2)
             self.assertEqual(manifest["artifacts"]["site_graph_report"], "site-graph.html")
+            journey = json.loads((output / "journey.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(journey["route"]["initial_html"]), 3)
+            self.assertEqual(len(journey["route"]["rendered_start"]), 2)
+            self.assertEqual(journey["success_action"]["status"], "found")
+            self.assertEqual(manifest["artifacts"]["journey_report"], "journey.html")
+            api = s2c_api_result.from_run(output)
+            self.assertEqual(api["schema"], "s2c-api-result/v1")
+            self.assertEqual(api["audited_on"], manifest["audited_on"])
+            self.assertTrue(any(item["id"].startswith("robots:") for item in api["actions"]))
+            try:
+                import jsonschema
+            except ImportError:
+                pass
+            else:
+                schema = json.loads((ROOT / "skills/scan-to-comprehend/references/api-result.schema.json").read_text())
+                jsonschema.validate(api, schema, format_checker=jsonschema.FormatChecker())
+                scenario_schema = json.loads((ROOT / "skills/scan-to-comprehend/references/journey-scenario.schema.json").read_text())
+                jsonschema.validate(journey["scenario"], scenario_schema)
 
 
 if __name__ == "__main__":

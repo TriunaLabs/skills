@@ -99,10 +99,22 @@ def site_basics_html(result: dict) -> str:
                 "One captured page. Timings are synthetic navigation observations from this audit environment, "
                 "not field Core Web Vitals. Missing contact or legal links are discovery review items, "
                 "not proof those pages do not exist.")
+    capture_network = result.get("capture_network") or []
+    if capture_network:
+        boundary += " Browser capture allowed only same-origin public GET resources through a pinned-IP fetch; "
+        boundary += "cross-origin assets, non-GET requests, and WebSockets were blocked, so the page may render differently."
+    network_rows = "".join(
+        f"<tr><th scope='row'>{escaped(item.get('viewport', 'viewport'))}</th>"
+        f"<td>{escaped(item.get('requests', 0))}</td><td>{escaped(item.get('fetched_bytes', 0))}</td>"
+        f"<td>{escaped(sum((item.get('blocked') or {}).values()))}</td></tr>"
+        for item in capture_network)
     return (
         "<section class='site-basics' id='site-basics'><p class='eyebrow'>PAGE BASICS / SEPARATE FROM S2C SCORING</p>"
         "<h2>Performance, links, and public information</h2>"
         f"<p class='boundary'>{escaped(boundary)}</p>"
+        + ("<div class='basic-scroll'><table><thead><tr><th>Viewport</th><th>Public GET requests</th>"
+           "<th>Fetched bytes</th><th>Blocked requests</th></tr></thead><tbody>" + network_rows +
+           "</tbody></table></div>" if network_rows else "") +
         "<h3>Navigation signals</h3><div class='basic-scroll'><table><thead><tr><th>Viewport</th><th>Response wait</th>"
         "<th>DOM ready</th><th>Load event</th><th>Resources seen</th></tr></thead><tbody>"
         + "".join(performance_rows) + "</tbody></table></div>"
