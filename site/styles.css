@@ -71,6 +71,8 @@ h2{font-size:25px;line-height:1.25;letter-spacing:-.035em;margin:0}
 .card h3{font-size:20px;letter-spacing:-.025em;margin:0 0 9px}
 .card p{font-size:13px;color:var(--muted);margin:0 0 20px;line-height:1.65}
 .card-summary{min-height:43px}
+.card-tooling{font-size:11px!important;line-height:1.45!important;margin:-8px 0 16px!important;color:var(--ink)!important}
+.card-tooling strong{color:var(--green)}
 .badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
 .badge{font-size:10px;background:#eef1e8;border:1px solid #e2e7dd;padding:4px 8px;border-radius:999px;color:#52614f}
 .card-bottom{border-top:1px solid var(--line);margin-top:20px;padding-top:15px;display:flex;justify-content:space-between;gap:10px;align-items:center}
@@ -102,12 +104,15 @@ footer p{flex:1}
 footer .brand{font-size:11px;color:var(--ink)}
 dialog{border:1px solid var(--line);border-radius:12px;max-width:760px;width:calc(100% - 32px);max-height:90vh;padding:30px;color:var(--ink);background:var(--paper)}
 dialog::backdrop{background:#0d211bc0}
-.dialog-top{display:flex;justify-content:space-between;align-items:center}
+.dialog-top{position:sticky;top:0;z-index:1;display:flex;justify-content:space-between;align-items:center;background:var(--paper)}
 .dialog-top .eyebrow{margin:0}
 .dialog-top button{font-size:20px;border:0;background:transparent;padding:8px}
 dialog h2{margin:20px 0 15px}
 dialog h3{font-size:14px;margin-top:25px}
 dialog p,dialog li{font-size:13px}
+.detail-tooling{margin:18px 0;padding:14px 18px;border:1px solid var(--line);border-radius:8px;background:#e9ede2}
+.detail-tooling h3{margin:0 0 8px}
+.detail-tooling p{margin:4px 0;line-height:1.5}
 dialog pre{white-space:pre-wrap;font:12px/1.7 ui-monospace,monospace;background:white;padding:20px;border:1px solid var(--line);overflow-wrap:anywhere}
 dialog blockquote{border-left:3px solid var(--green);margin:0;padding:10px 16px;font-size:14px}
 #detail-preview{margin:22px 0 24px;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:white}
@@ -118,6 +123,7 @@ dialog blockquote{border-left:3px solid var(--green);margin:0;padding:10px 16px;
 .skip:focus{top:10px}
 [hidden]{display:none!important}
 @media(max-width:800px){header{padding:20px 24px}
+.nav-about,.nav-contribute{display:none}
 .brand-sub,.divider{display:none}
 main{padding:0 24px}
 .intro{grid-template-columns:1fr;gap:25px;padding:42px 0}

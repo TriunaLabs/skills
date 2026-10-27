@@ -31,6 +31,11 @@ function render() {
     const maturity = el('span', s.badges?.[0] || 'Ready', 'maturity');
     top.append(maturity, identity);
     content.append(top, el('h3', s.title), el('p', s.summary || s.description, 'card-summary'));
+    if (s.tooling) {
+      const tools = el('p', '', 'card-tooling');
+      tools.append(el('strong', 'Tools used: '), document.createTextNode(s.tooling.core.join(' · ')));
+      content.append(tools);
+    }
     const badges = el('div', '', 'badges');
     (s.badges || []).slice(1).forEach(t => badges.append(el('span', t, 'badge')));
     const bottom = el('div', '', 'card-bottom');
@@ -49,6 +54,14 @@ function show(s, button) {
   returnFocus = button;
   $('detail-title').textContent = s.title;
   $('detail-description').textContent = s.description;
+  const tooling = $('detail-tooling');
+  tooling.replaceChildren();
+  if (s.tooling) {
+    tooling.append(el('h3', 'Tools used'));
+    tooling.append(el('p', `Core: ${s.tooling.core.join(' · ')}`));
+    if (s.tooling.optional.length) tooling.append(el('p', `Optional: ${s.tooling.optional.join(' · ')}`));
+    tooling.hidden = false;
+  } else tooling.hidden = true;
   const preview = $('detail-preview');
   if (s.preview) {
     $('detail-image').src = `skills/${s.name}/${s.preview.src}`;
@@ -68,6 +81,7 @@ function show(s, button) {
   $('source').href=`https://github.com/TriunaLabs/skills/tree/main/skills/${s.name}`;
   $('raw').href=`skills/${s.name}/SKILL.md`;
   $('case-study').hidden = s.name !== 'scan-to-comprehend';
+  $('tool-page').hidden = s.name !== 'scan-to-comprehend';
   $('install-skill').value=s.name;
   updateInstall();
   const params = new URLSearchParams(location.search); params.set('skill', s.name);
@@ -75,6 +89,12 @@ function show(s, button) {
   $('detail').showModal();
 }
 $('close').addEventListener('click', ()=>$('detail').close());
+$('detail').addEventListener('click', (event) => {
+  const dialog = $('detail');
+  const bounds = dialog.getBoundingClientRect();
+  const outside = event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom;
+  if (event.target === dialog && outside) dialog.close();
+});
 $('detail').addEventListener('close', ()=>returnFocus?.focus());
 $('detail-install').addEventListener('click', () => { $('detail').close(); updateInstall(); });
 ['search','agent','category'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));

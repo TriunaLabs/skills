@@ -1,19 +1,53 @@
 {
   "title": "Scan to Comprehend",
   "summary": "Audit dense pages with source, assistive, raw-versus-rendered robot visibility, retrieval, attention, and page-basics views from one browser capture or HTML prototype.",
-  "badges": ["Ready", "Visual walkthrough", "Reader views", "Attention baseline"],
+  "badges": [
+    "Ready",
+    "Visual walkthrough",
+    "Reader views",
+    "Attention baseline"
+  ],
   "category": "Web & Content",
-  "tags": ["content-design", "information-design", "scannability", "articles", "infographics", "websites", "comprehension"],
+  "tags": [
+    "content-design",
+    "information-design",
+    "scannability",
+    "articles",
+    "infographics",
+    "websites",
+    "comprehension"
+  ],
   "version": "0.15.0",
   "license": "MIT",
   "author": "TriunaLabs",
   "origin": "Original TriunaLabs workflow developed from a user-supplied Scan-to-Comprehend concept and Triuna Labs blueprint, checked against primary NN/g eye-tracking, visual-attention, and W3C sources. No third-party code or datasets are included.",
-  "requirements": ["Python 3.10+ for optional source audit and HTML report; Pillow for the attention baseline. The optional assistive capture needs Node, Playwright, and Chrome or bundled Chromium; public URL capture needs network access. The local MCP adapter requires integrations/requirements-mcp.txt. The optional orchestrated OTLP trace export needs observability/requirements.txt and an explicitly configured endpoint. The optional section probe requires a browser with Pointer Events and explicit host activation. Rendered and reader validation requires suitable tools and participants."],
-  "compatibility": {"codex": "format-compatible", "claude-code": "format-compatible", "other-agents": "untested"},
+  "requirements": [
+    "Python 3.10+ for optional source audit and HTML report; Pillow for the attention baseline. The optional assistive capture needs Node, Playwright, and Chrome or bundled Chromium; public URL capture needs network access. The local MCP adapter requires integrations/requirements-mcp.txt. The optional orchestrated OTLP trace export needs observability/requirements.txt and an explicitly configured endpoint. The optional section probe requires a browser with Pointer Events and explicit host activation. Rendered and reader validation requires suitable tools and participants."
+  ],
+  "tooling": {
+    "core": [
+      "Python 3.10+"
+    ],
+    "optional": [
+      "Pillow",
+      "Node.js + Playwright",
+      "Chromium",
+      "MCP",
+      "OpenTelemetry"
+    ]
+  },
+  "compatibility": {
+    "codex": "format-compatible",
+    "claude-code": "format-compatible",
+    "other-agents": "untested"
+  },
   "examples": [
     "Restructure this technical article so a reader can find the conclusion quickly and still inspect the methods.",
     "Review this product page for readers comparing plans on a phone; show the top comprehension barriers.",
     "Turn this high-density dataset into an infographic with a clear takeaway, readable comparisons, and a text equivalent."
   ],
-  "preview": {"src": "assets/catalog-preview.svg", "alt": "Three linked reading stages: orient, locate, and understand, with headings and context."}
+  "preview": {
+    "src": "assets/catalog-preview.svg",
+    "alt": "Three linked reading stages: orient, locate, and understand, with headings and context."
+  }
 }

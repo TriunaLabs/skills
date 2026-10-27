@@ -1,7 +1,12 @@
 {
   "title": "Route an agent message",
   "summary": "Route a change or question to every relevant active session and report what was actually delivered.",
-  "badges": ["Ready", "Multi-agent", "HTML + Markdown", "Optional decisions"],
+  "badges": [
+    "Ready",
+    "Multi-agent",
+    "HTML + Markdown",
+    "Optional decisions"
+  ],
   "category": "Engineering",
   "tags": [
     "agents",
@@ -19,6 +24,18 @@
   "requirements": [
     "Python 3.10+ for the helper scripts; access to a live-session listing or registry and an authorized messaging transport. Ambiguous routing defaults to a local Laya decision service; Jev and OpenAI Decisions require separately configured adapters and credentials."
   ],
+  "tooling": {
+    "core": [
+      "Python 3.10+",
+      "Session registry",
+      "Messaging transport"
+    ],
+    "optional": [
+      "Laya",
+      "Jev",
+      "OpenAI Decisions"
+    ]
+  },
   "compatibility": {
     "codex": "format-compatible",
     "claude-code": "format-compatible",

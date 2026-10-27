@@ -1,9 +1,22 @@
 {
   "title": "Build a release brief",
   "summary": "Explain release scope, collaboration, tests, security, supply chain, risk, and operational readiness.",
-  "badges": ["Ready", "Git evidence", "HTML + Markdown", "PDF-ready"],
+  "badges": [
+    "Ready",
+    "Git evidence",
+    "HTML + Markdown",
+    "PDF-ready"
+  ],
   "category": "Documentation",
-  "tags": ["releases", "git", "provenance", "verification", "security", "supply-chain", "pdf"],
+  "tags": [
+    "releases",
+    "git",
+    "provenance",
+    "verification",
+    "security",
+    "supply-chain",
+    "pdf"
+  ],
   "version": "0.3.0",
   "license": "MIT",
   "author": "TriunaLabs",
@@ -15,7 +28,20 @@
   "requirements": [
     "Python 3.10+, Git, and read access to a local repository. Quality, security, supply-chain, deployment, rollback, observability, and limitation evidence is optional but must be supplied explicitly when used. HTML and print-to-PDF reports run in a modern browser with JavaScript enabled."
   ],
-  "compatibility": {"codex":"format-compatible","claude-code":"format-compatible","other-agents":"untested"},
+  "tooling": {
+    "core": [
+      "Python 3.10+",
+      "Git"
+    ],
+    "optional": [
+      "Browser for HTML/PDF report"
+    ]
+  },
+  "compatibility": {
+    "codex": "format-compatible",
+    "claude-code": "format-compatible",
+    "other-agents": "untested"
+  },
   "examples": [
     "Build an infographic release brief for v1.2.0..v1.3.0 with contributor context, Snyk and CodeQL deltas, test evidence, and a PDF-ready view.",
     "Create developer-facing Markdown release notes from these two commit SHAs and attach dependency review, SBOM, provenance, test, and deployment evidence.",

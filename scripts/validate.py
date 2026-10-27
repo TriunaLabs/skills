@@ -40,7 +40,7 @@ def validate(root=ROOT):
                 raise ValueError(f'{name}: broken or escaping reference {target}')
         meta = json.loads((folder / 'catalog.json').read_text(encoding='utf-8'))
         required = {'title', 'category', 'tags', 'version', 'license', 'author', 'origin', 'requirements', 'compatibility', 'examples'}
-        optional = {'preview', 'visibility', 'summary', 'badges'}
+        optional = {'preview', 'visibility', 'summary', 'badges', 'tooling'}
         if not required <= set(meta) or set(meta) - required - optional:
             raise ValueError(f'{name}: metadata keys must be {sorted(required)} with optional {sorted(optional)}')
         for field in ['title', 'category', 'author', 'origin']:
@@ -61,6 +61,16 @@ def validate(root=ROOT):
         for field in ['tags', 'requirements', 'examples']:
             if not isinstance(meta[field], list) or not meta[field] or not all(isinstance(x, str) and x.strip() for x in meta[field]):
                 raise ValueError(f'{name}: {field} must be a nonempty string array')
+        if 'tooling' in meta:
+            tooling = meta['tooling']
+            if not isinstance(tooling, dict) or set(tooling) != {'core', 'optional'}:
+                raise ValueError(f'{name}: tooling must contain core and optional lists')
+            for field in ('core', 'optional'):
+                values = tooling[field]
+                if not isinstance(values, list) or (field == 'core' and not values) or not all(
+                    isinstance(value, str) and 1 <= len(value.strip()) <= 50 for value in values
+                ):
+                    raise ValueError(f'{name}: invalid tooling {field}')
         if set(meta['compatibility']) != {'codex', 'claude-code', 'other-agents'}:
             raise ValueError(f'{name}: all compatibility targets required')
         if any(v not in ['format-compatible', 'untested', 'unsupported'] for v in meta['compatibility'].values()):

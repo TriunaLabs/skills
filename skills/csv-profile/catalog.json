@@ -1,7 +1,12 @@
 {
   "title": "Profile a CSV",
   "summary": "Find missing values, type conflicts, duplicates, category drift, structural problems, and review priorities.",
-  "badges": ["Ready", "Local-first", "HTML + Markdown", "Optional Laya"],
+  "badges": [
+    "Ready",
+    "Local-first",
+    "HTML + Markdown",
+    "Optional Laya"
+  ],
   "category": "Data",
   "tags": [
     "csv",
@@ -19,6 +24,15 @@
   "requirements": [
     "Python 3.10+ for the standard-library analyzer; read access to the CSV. HTML reports run in a modern browser with JavaScript enabled. Optional Laya semantic review requires Node.js 20+, @receptron/laya 0.1.2, about 1.7 GB for model weights, and about 2 GB of memory."
   ],
+  "tooling": {
+    "core": [
+      "Python 3.10+"
+    ],
+    "optional": [
+      "Browser for HTML report",
+      "Node.js + Laya"
+    ]
+  },
   "compatibility": {
     "codex": "format-compatible",
     "claude-code": "format-compatible",

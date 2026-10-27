@@ -11,6 +11,10 @@
   "requirements": [
     "List required runtime, tools, or access."
   ],
+  "tooling": {
+    "core": ["Name the tools needed for the basic workflow"],
+    "optional": ["Name tools used by optional features"]
+  },
   "compatibility": {
     "codex": "format-compatible",
     "claude-code": "format-compatible",

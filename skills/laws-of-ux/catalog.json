@@ -1,9 +1,22 @@
 {
   "title": "Review an interface with UX principles",
   "summary": "Turn observable interface problems into evidence-backed findings, testable fixes, and annotated reports.",
-  "badges": ["Ready", "Local-first", "HTML report", "Before / after"],
+  "badges": [
+    "Ready",
+    "Local-first",
+    "HTML report",
+    "Before / after"
+  ],
   "category": "Web & Content",
-  "tags": ["ux", "interface-review", "usability", "annotated-poster", "evidence", "comparison", "html-report"],
+  "tags": [
+    "ux",
+    "interface-review",
+    "usability",
+    "annotated-poster",
+    "evidence",
+    "comparison",
+    "html-report"
+  ],
   "version": "0.1.0",
   "license": "MIT",
   "author": "TriunaLabs",
@@ -11,7 +24,20 @@
   "requirements": [
     "Python 3.10+ for validation, comparison, and poster rendering. A supplied screenshot, URL, HTML file, interaction trace, or clear surface description is required for grounded findings; URL and browser inspection depend on the tools and permissions available in the host environment."
   ],
-  "compatibility": {"codex":"format-compatible","claude-code":"format-compatible","other-agents":"untested"},
+  "tooling": {
+    "core": [
+      "Python 3.10+",
+      "Supplied interface evidence"
+    ],
+    "optional": [
+      "Browser inspection"
+    ]
+  },
+  "compatibility": {
+    "codex": "format-compatible",
+    "claude-code": "format-compatible",
+    "other-agents": "untested"
+  },
   "examples": [
     "Review this mobile checkout using the smallest set of UX principles that explains the observed problems.",
     "Turn these grounded findings into an annotated teardown poster and a testable engineering handoff.",

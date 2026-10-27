@@ -42,6 +42,7 @@ class LibraryTests(unittest.TestCase):
         catalog = json.loads((ROOT / 'dist/catalog.json').read_text(encoding='utf-8'))
         self.assertEqual({item['name'] for item in catalog}, {'answer-ready-web', 'create-interface-design-system', 'csv-profile', 'laws-of-ux', 'release-brief', 'route-agent-message', 'scan-to-comprehend'})
         self.assertTrue(all(item.get('summary') and item.get('badges') and item.get('preview') for item in catalog))
+        self.assertTrue(all(item.get('tooling', {}).get('core') for item in catalog))
         self.assertTrue(all(len(item['badges']) <= 4 for item in catalog))
         self.assertFalse((ROOT / 'dist/skills/decision-record').exists())
         self.assertFalse((ROOT / 'dist/skills/reproduce-bug').exists())
@@ -54,6 +55,8 @@ class LibraryTests(unittest.TestCase):
         app = (ROOT / 'dist/app.js').read_text(encoding='utf-8')
         self.assertIn('card-preview', app)
         self.assertIn('s.summary || s.description', app)
+        self.assertIn('detail-tooling', app)
+        self.assertIn('dialog.getBoundingClientRect()', app)
 
     def test_invalid_metadata_and_resources_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -96,6 +99,17 @@ class LibraryTests(unittest.TestCase):
             data['badges'] = ['one', 'two', 'three', 'four', 'five']
             meta.write_text(json.dumps(data), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'summary'):
+                validate(root)
+
+    def test_tooling_metadata_is_validated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            shutil.copytree(ROOT / 'skills/csv-profile', root / 'skills/csv-profile')
+            meta = root / 'skills/csv-profile/catalog.json'
+            data = json.loads(meta.read_text(encoding='utf-8'))
+            data['tooling']['core'] = []
+            meta.write_text(json.dumps(data), encoding='utf-8')
+            with self.assertRaisesRegex(ValueError, 'tooling core'):
                 validate(root)
 
     def test_answer_ready_audit_separates_observation_from_claims(self):
