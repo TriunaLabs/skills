@@ -1,0 +1,40 @@
+// Pure state/markup tests; no browser, installation, clipboard or network actions.
+const assert=require('node:assert/strict'),{mount,firstPrompt,installPrompt}=require('../site/install-wizard.js');
+const skill={name:'scan-to-comprehend',title:'Scan to Comprehend',version:'0.16.0',license:'MIT',origin:'Original workflow.',requirements:['Python 3.10+'],tooling:{core:['Python'],optional:['Playwright']},examples:['Audit my page.'],compatibility:{codex:'format-compatible','other-agents':'untested'},distribution:{zip:'downloads/s2c.zip',sha256:'a'.repeat(64),file_count:9},evidence:{script_count:2,reference_count:1,references:[{title:'Method',href:'skills/s2c/references/method.md'}]}};
+function root(){return {innerHTML:'',listeners:{},addEventListener(k,fn){this.listeners[k]=fn},removeEventListener(k){delete this.listeners[k]},contains(){return true},querySelector(){return {focus(){}}}}}
+function click(r,dataset={},attribute){const b={dataset,hasAttribute:k=>k===attribute};return r.listeners.click({target:{closest:()=>b}})}
+const a=root(),b=root(),one=mount(a,skill),two=mount(b,{...skill,name:'csv-profile',title:'CSV Profile'});
+assert.match(a.innerHTML,/How was this skill built/);
+assert.doesNotMatch(a.innerHTML,/setup-step-panel/,'Instructions wait until the user picks a path');
+click(a,{setupPath:'ready'});
+assert.equal(one.getState().path,'ready');
+assert.match(a.innerHTML,/Step 1 of 2/);
+assert.match(a.innerHTML,/Use \$skill-installer/);
+click(a,{},'data-setup-next');
+assert.match(a.innerHTML,/\$scan-to-comprehend/);
+assert.match(a.innerHTML,/Audit my page/);
+click(a,{},'data-setup-next');
+assert.equal(one.getState().done,true);
+assert.match(a.innerHTML,/does not verify installation/);
+click(a,{setupAgent:'claude-desktop'});
+assert.equal(one.getState().path,null,'Platform changes reset the route');
+click(a,{setupPath:'ready'});
+assert.match(a.innerHTML,/Upload a skill/);
+assert.match(a.innerHTML,/downloads\/s2c.zip/);
+assert.doesNotMatch(a.innerHTML,/Use \$skill-installer/);
+click(a,{setupAgent:'claude-code'});
+click(a,{setupPath:'new'});
+assert.match(a.innerHTML,/Step 1 of 4/);
+click(a,{},'data-setup-next');
+assert.match(a.innerHTML,/Python/);
+click(a,{setupStep:'try'});
+assert.equal(one.getState().index,1,'Future steps do not become completed by clicking ahead');
+click(a,{},'data-setup-next');
+click(a,{},'data-setup-next');
+assert.match(a.innerHTML,/\/scan-to-comprehend/);
+assert.equal(two.getState().path,null,'Each skill wizard has isolated progress');
+assert.match(firstPrompt({...skill,name:'csv-profile'},'codex'),/^\$csv-profile/);
+assert.match(installPrompt(skill,'claude-code'),/Preserve any existing customized copy/);
+assert.doesNotMatch(firstPrompt(skill,'claude-desktop'),/^\//,'Desktop upload flow does not promise slash invocation');
+one.destroy();two.destroy();assert.equal(a.listeners.click,undefined);
+console.log('Wizard paths, platform switching, per-skill prompts and evidence disclosure passed.');

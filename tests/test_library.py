@@ -5,6 +5,8 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
+import hashlib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,6 +51,16 @@ class LibraryTests(unittest.TestCase):
         self.assertTrue((ROOT / 'dist/assets/triunalabs-horizontal.svg').is_file())
         self.assertTrue((ROOT / 'dist/examples/s2c-demo/showcase.html').is_file())
         self.assertTrue((ROOT / 'dist/examples/s2c-demo/showcase.css').is_file())
+        for item in catalog:
+            archive=ROOT / 'dist' / item['distribution']['zip']
+            self.assertEqual(hashlib.sha256(archive.read_bytes()).hexdigest(), item['distribution']['sha256'])
+            with zipfile.ZipFile(archive) as package:
+                self.assertIn(f"{item['name']}/SKILL.md", package.namelist())
+                self.assertIn(f"{item['name']}/LICENSE", package.namelist())
+                self.assertIn(f"{item['name']}/catalog.json", package.namelist())
+                self.assertFalse(any('__pycache__' in name or name.endswith('.pyc') for name in package.namelist()))
+                self.assertTrue(all(name.startswith(item['name']+'/') and '..' not in name.split('/') for name in package.namelist()))
+            self.assertTrue(all((ROOT/'dist'/r['href']).is_file() for r in item['evidence']['references']))
         index = (ROOT / 'dist/index.html').read_text(encoding='utf-8')
         self.assertIn('Seven complete, inspectable workflows', index)
         self.assertIn('data-skill="answer-ready-web"', index)

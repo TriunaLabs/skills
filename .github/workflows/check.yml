@@ -22,6 +22,7 @@ jobs:
       - run: python scripts/validate.py
       - run: python -m unittest discover -s tests
       - run: node --test tests/s2c_section_signals.test.cjs
+      - run: node tests/check_install_wizard.cjs
       - run: node --test tests/test_s2c_public_browser_guard.mjs
       - run: python -m pip install -r skills/scan-to-comprehend/integrations/requirements-mcp.txt
       - run: python -m unittest tests.test_s2c_mcp

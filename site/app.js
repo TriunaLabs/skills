@@ -3,6 +3,7 @@ const names = {codex: 'Codex', 'claude-code': 'Claude Code', 'other-agents': 'Ot
 let skills = [];
 let returnFocus;
 let installAgent = 'codex';
+let mainWizard, detailWizard;
 const el = (tag, text, cls) => { const n = document.createElement(tag); n.textContent = text; if (cls) n.className = cls; return n; };
 function render() {
   const query = $('search').value.trim().toLowerCase();
@@ -85,8 +86,10 @@ function show(s, button) {
   $('tool-page').hidden = s.name !== 'scan-to-comprehend';
   $('install-skill').value=s.name;
   updateInstall();
-  const params = new URLSearchParams(location.search); params.set('skill', s.name);
+  const params = new URLSearchParams(location.search); params.delete('setup'); params.set('skill', s.name);
   history.replaceState(null, '', location.pathname + '?' + params + location.hash);
+  detailWizard?.destroy();
+  detailWizard=SkillSetup.mount($('detail-setup'),s,{agent:installAgent,onAgentChange:agent=>{installAgent=agent;}});
   $('detail').showModal();
 }
 $('close').addEventListener('click', ()=>$('detail').close());
@@ -101,13 +104,11 @@ $('detail-install').addEventListener('click', () => { $('detail').close(); updat
 ['search','agent','category'].forEach(id=>$(id).addEventListener(id==='search'?'input':'change',render));
 $('reset').addEventListener('click',()=>{$('search').value='';$('agent').value='all';$('category').value='all';render();});
 function updateInstall() {
-  const agent = installAgent;
-  const skill = $('install-skill').value || 'release-brief';
-  document.querySelectorAll('[data-install]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.install===agent)));
-  const data={codex:['Project: .agents/skills/ · Personal folder below.',`~/.agents/skills/${skill}/SKILL.md`,`Start a new session and request $${skill}.`,'https://learn.chatgpt.com/docs/build-skills'], 'claude-code':['Project: .claude/skills/ · Personal local folder below.',`~/.claude/skills/${skill}/SKILL.md`,`Invoke /${skill} with your task. Cloud sessions use a separate flow.`,'https://code.claude.com/docs/en/skills'], 'other-agents':['Use your agent’s documented skill directory.',`<agent-skill-directory>/${skill}/SKILL.md`,'No universal install path is assumed. Runtime compatibility is untested.','https://agentskills.io/specification']}[agent];
-  $('install-description').textContent=data[0];$('install-path').textContent=data[1];$('invoke').textContent=data[2];$('official').href=data[3];
+  const skill=skills.find(s=>s.name===$('install-skill').value);
+  if(!skill)return;
+  mainWizard?.destroy();
+  mainWizard=SkillSetup.mount($('install-wizard'),skill,{agent:installAgent,onAgentChange:agent=>{installAgent=agent;}});
 }
-document.querySelectorAll('[data-install]').forEach(b=>b.addEventListener('click',()=>{installAgent=b.dataset.install;updateInstall();}));
 $('install-skill').addEventListener('change', updateInstall);
 document.querySelectorAll('[data-skill]').forEach(button=>button.addEventListener('click',()=>{const skill=skills.find(s=>s.name===button.dataset.skill);if(skill)show(skill,button);}));
 fetch('catalog.json', {cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('catalog');return r.json();}).then(data=>{
@@ -121,5 +122,9 @@ fetch('catalog.json', {cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('cat
   render();
   updateInstall();
   const requested=skills.find(s=>s.name===p.get('skill'));
-  if(requested) show(requested, document.querySelector(`[data-skill="${requested.name}"]`));
+  if(requested&&p.get('setup')==='1'){
+    $('install-skill').value=requested.name;updateInstall();
+    history.replaceState(null,'',location.pathname+'?skill='+encodeURIComponent(requested.name)+'&setup=1#install');
+    $('install').scrollIntoView();
+  }else if(requested)show(requested,document.querySelector(`[data-skill="${requested.name}"]`));
 }).catch(()=>{$('count').textContent='Catalog unavailable';$('error').hidden=false;document.querySelectorAll('.controls input,.controls select,#reset').forEach(e=>e.disabled=true);});
