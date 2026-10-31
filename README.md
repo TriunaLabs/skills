@@ -18,6 +18,10 @@ A public library of focused, portable workflows for Claude Code, Codex, and othe
 
 These are original contributions prepared for this library, not exports of personal or installed skills. Packages marked `visibility: hidden` remain in source while they are developed, but are excluded from the public catalog and its downloadable build. Format compatibility is not an end-to-end runtime test or a performance claim. See each `catalog.json` for requirements, provenance, and compatibility status.
 
+## Standalone skills
+
+[Supply Chain Graph](https://github.com/TriunaLabs/supply-chain-graph) inventories explicitly selected project folders and visualizes JavaScript source imports, npm and pnpm resolutions, GitHub sources, and scan coverage. It runs locally with Node.js 20+; real configs and scan results stay outside the public repository. Its source, installation steps, and privacy guidance live in the [standalone repository](https://github.com/TriunaLabs/supply-chain-graph/blob/main/README.md).
+
 ### Scan to Comprehend audit
 
 The open S2C CLI checks headings, link labels, image alternatives, and table headers in HTML or Markdown. It returns observed weaknesses, narrow strengths, suggested fixes, and an experimental 0–100 **structural friction risk index**. The index has low confidence and is not a measured cognitive-load, gaze, accessibility, or comprehension score. It is unrelated to the web-performance metric Cumulative Layout Shift (CLS).
